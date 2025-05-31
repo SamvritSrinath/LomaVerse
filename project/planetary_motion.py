@@ -1,7 +1,4 @@
 # planetory_motion.py (Python Host Code with Scenarios)
-
-import matplotlib.pyplot as plt
-from matplotlib import animation
 import math
 import os
 import sys
@@ -13,7 +10,6 @@ import compiler
 import ctypes
 from config import SolarSystemConfig, BodyState
 import utils
-from typing import List
 
 # --- Global Constants ---
 LOMA_CODE_FILENAME = 'planetary_motion_loma.py' # Loma physics code file (the one above)
@@ -27,7 +23,7 @@ G_val = (2.0 * math.pi)**2 # Gravitational constant (AU^3 / (SolarMass * Year^2)
 def setup_solar_system_scenario() -> SolarSystemConfig:
     """Defines parameters for the standard Solar System simulation."""
     n_bodies = 9
-    fps = 60                 # Animation frames per second
+    fps = 60
 
     initial_bodies = [
         BodyState(name="Sun", mass=1.0, pos=(0, 0), vel=(0, 0)),
