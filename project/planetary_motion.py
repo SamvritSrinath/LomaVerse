@@ -7,11 +7,12 @@ import os
 import sys
 import numpy as np
 current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(os.path.dirname(current))
+parent = os.path.dirname(current)
 sys.path.append(parent)
 import compiler
 import ctypes
 from config import SolarSystemConfig, BodyConfig, DEFAULT_PLANET_VISUAL_RADII, DEFAULT_PLANET_COLORS
+import utils
 
 # --- Global Constants ---
 LOMA_CODE_FILENAME = 'planetary_motion_loma.py' # Loma physics code file (the one above)
@@ -124,8 +125,7 @@ def compile_loma_code():
     print("Compilation successful for Loma code.")
     return structs, lib
 
-# --- Main Simulation Runner ---
-def run_simulation_scenario(cfg: SolarSystemConfig):
+def get_simulation_runner(cfg: SolarSystemConfig):
     """Runs a complete simulation and animation for a given scenario."""
     
     NUM_FRAMES = int(cfg.real_time_animation_seconds * cfg.fps)
@@ -172,18 +172,26 @@ def run_simulation_scenario(cfg: SolarSystemConfig):
     #         current_body_states[0].mom.x -= total_momentum_x 
     #         current_body_states[0].mom.y -= total_momentum_y
 
-    sim_config_obj = SimConfig(
-        G=G_val, 
-        dt=TIME_PER_FRAME_FOR_ANIM,
-        epsilon_sq=cfg.epsilon**2,
-        num_bodies=cfg.current_n_bodies
-    )
-    for i in range(1000):
-        lib.time_step_system(current_body_states, sim_config_obj, next_body_states_buffer)
-        ctypes.memmove(ctypes.addressof(current_body_states),
-                        ctypes.addressof(next_body_states_buffer),
-                        ctypes.sizeof(BodyStateArray)) 
-        print(current_body_states[0].pos.x, current_body_states[0].pos.y)
+    def get_get_next_states():
+        sim_config_obj = SimConfig(
+            G=G_val, 
+            dt=TIME_PER_FRAME_FOR_ANIM,
+            epsilon_sq=cfg.epsilon**2,
+            num_bodies=cfg.current_n_bodies
+        )
+        states = []
+        for _ in range(10000):
+            temp_copy = BodyStateArray()
+            ctypes.memmove(ctypes.addressof(temp_copy),
+                    ctypes.addressof(current_body_states),
+                    ctypes.sizeof(BodyStateArray)) 
+            states.append(temp_copy)
+            lib.time_step_system(current_body_states, sim_config_obj, next_body_states_buffer)
+            ctypes.memmove(ctypes.addressof(current_body_states),
+                            ctypes.addressof(next_body_states_buffer),
+                            ctypes.sizeof(BodyStateArray)) 
+        return utils.convert_body_state_arrs_to_python(states, cfg.current_n_bodies)
+    return get_get_next_states
 
 if __name__ == '__main__':
     # Run Solar System Scenario
@@ -192,4 +200,9 @@ if __name__ == '__main__':
 
     # Run Jupiter Chaotic Scenario
     jc_params = setup_jupiter_chaotic_scenario()
-    run_simulation_scenario(jc_params)
+    # run_simulation_scenario(jc_params)
+    sim_runner = get_simulation_runner(jc_params)
+    states = sim_runner()
+    for state in states:
+        print(state[0].pos.x)
+    
