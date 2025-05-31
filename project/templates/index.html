@@ -3,9 +3,23 @@
     <head>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/110/three.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.110.0/examples/js/controls/OrbitControls.js"></script>
+        <script src="{{ url_for('static', filename='js/linkedlist.js') }}"></script>
         <script src="{{ url_for('static', filename='js/script.js') }}"></script>
     </head>
     <body>
         <h1>Welcome to LomaVerse</h1>
+        <div id="menu">
+            <h2>Choose your animation</h2>
+            <button id="solarsysButton">Solar System</button>
+            <button id="jupiterchaoticButton">Jupiter Chaotic</button>
+        </div>
+        <div id="controls" style="display: none;">
+            <h2 id="simName"></h2>
+            <div>
+                <span>Years Gone By: </span><span id="years"></span>
+            </div>
+            <button id="pauseButton">Pause</button>
+            <button id="playButton">Play</button>
+        </div>
     </body>
 </html>

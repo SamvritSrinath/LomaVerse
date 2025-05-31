@@ -11,8 +11,9 @@ parent = os.path.dirname(current)
 sys.path.append(parent)
 import compiler
 import ctypes
-from config import SolarSystemConfig, BodyConfig, DEFAULT_PLANET_VISUAL_RADII, DEFAULT_PLANET_COLORS
+from config import SolarSystemConfig, BodyState
 import utils
+from typing import List
 
 # --- Global Constants ---
 LOMA_CODE_FILENAME = 'planetary_motion_loma.py' # Loma physics code file (the one above)
@@ -23,83 +24,59 @@ MAX_N_BODIES_CONST = 20                    # Max bodies Loma code is compiled fo
 
 G_val = (2.0 * math.pi)**2 # Gravitational constant (AU^3 / (SolarMass * Year^2))
 
-# --- Scenario Definition Functions ---
-# def setup_solar_system_scenario() -> SolarSystemConfig:
-#     """Defines parameters for the standard Solar System simulation."""
-#     n_bodies = 9
-#     real_time_seconds = 25.0 # Animation video length
-#     fps = 60                 # Animation frames per second
-#     animation_plot_duration_years = 75.0 # Simulated years to show
-    
-#     num_frames = int(real_time_seconds * fps)
-    
-#     initial_bodies = [ 
-#         {'name': "Sun", 'mass': 1.0, 'pos': (0,0), 'vel': (0,0)}, # vel can be non-zero if CoM is adjusted
-#         {'name': "Mercury", 'mass': 1.65e-7, 'pos': (0.39, 0), 'vel_r_parent': 0.39},
-#         {'name': "Venus", 'mass': 2.45e-6, 'pos': (0.72, 0), 'vel_r_parent': 0.72},
-#         {'name': "Earth", 'mass': 3.00e-6, 'pos': (1.0, 0), 'vel_r_parent': 1.0},
-#         {'name': "Mars", 'mass': 3.23e-7, 'pos': (1.52, 0), 'vel_r_parent': 1.52},
-#         {'name': "Jupiter", 'mass': 9.55e-4, 'pos': (5.20, 0), 'vel_r_parent': 5.20},
-#         {'name': "Saturn", 'mass': 2.86e-4, 'pos': (9.58, 0), 'vel_r_parent': 9.58},
-#         {'name': "Uranus", 'mass': 4.37e-5, 'pos': (19.22, 0), 'vel_r_parent': 19.22},
-#         {'name': "Neptune", 'mass': 5.15e-5, 'pos': (30.05, 0), 'vel_r_parent': 30.05},
-#     ]
+def setup_solar_system_scenario() -> SolarSystemConfig:
+    """Defines parameters for the standard Solar System simulation."""
+    n_bodies = 9
+    fps = 60                 # Animation frames per second
 
-#     return {
-#         "name": "Solar System",
-#         "output_filename": "planetary_SS.mp4",
-#         "current_n_bodies": n_bodies,
-#         "time_step_years": 1e-3, # Physics time step
-#         "epsilon": 0.05,         # Gravitational softening
-#         "animation_plot_duration_years": animation_plot_duration_years,
-#         "real_time_animation_seconds": real_time_seconds,
-#         "fps": fps,
-#         "num_frames": num_frames,
-#         # show only trail long enough that it's visible
-#         "trail_length_frames": 400,
-#         "initial_bodies_data": initial_bodies,
-#         "plot_config": {
-#             "title_suffix": "Solar System (N-Body)",
-#             "limit_auto_scale": 1.2, 
-#             "limit_min_padding": 2.0,
-#             "marker_config": { # "sun_size" refers to the central/largest body visually
-#                 "primary_body_size": 20.0, "base_size": 3.0, "min_size": 2.0, 
-#                 "max_size": 11.0, "power_scale": 0.50 # Adjusted for less aggressive scaling
-#             },
-#             "trail_config": {
-#                 "base_lw": 0.4, "max_lw": 1.8, "power_scale": 0.4, "primary_body_lw": 1.5
-#             },
-#             "label_font_size": 7,
-#             "label_offset_factor": 0.025 
-#         }
-#     }
+    initial_bodies = [
+        BodyState(name="Sun", mass=1.0, pos=(0, 0), vel=(0, 0)),
+        BodyState(name="Mercury", mass=1.65e-7, pos=(0.39, 0), vel=0.39),
+        BodyState(name="Venus", mass=2.45e-6, pos=(0.72, 0), vel=0.72),
+        BodyState(name="Earth", mass=3.00e-6, pos=(1.0, 0), vel=1.0),
+        BodyState(name="Mars", mass=3.23e-7, pos=(1.52, 0), vel=1.52),
+        BodyState(name="Jupiter", mass=9.55e-4, pos=(5.20, 0), vel=5.20),
+        BodyState(name="Saturn", mass=2.86e-4, pos=(9.58, 0), vel=9.58),
+        BodyState(name="Uranus", mass=4.37e-5, pos=(19.22, 0), vel=19.22),
+        BodyState(name="Neptune", mass=5.15e-5, pos=(30.05, 0), vel=30.05),
+    ]
+
+    system_config = SolarSystemConfig(
+        name="Solar System",
+        current_n_bodies=n_bodies,
+        epsilon=0.05,
+        years_per_frame=0.001,
+        fps=fps,
+        sim_steps_per_frame=64,
+        initial_bodies_data=initial_bodies,
+    )
+
+    return system_config
 
 def setup_jupiter_chaotic_scenario():
     """Defines parameters for a Jupiter-centered system with 8 other solar system planets."""
     n_bodies = 9 # Jupiter + the 8 planets
-    real_time_seconds = 30.0
     fps = 60
-    animation_plot_duration_years = 3.0 # Chaotic systems evolve or disperse quickly
     
     initial_bodies = [
-        BodyConfig(name="Jupiter", mass=0.000955, pos=(0, 0), vel=(0, 0)),
-        BodyConfig(name="Mercury", mass=1.65e-7, pos=(np.random.uniform(0.015, 0.025), np.random.uniform(-0.01, 0.01)), vel=0.02),
-        BodyConfig(name="Venus", mass=2.45e-6, pos=(np.random.uniform(-0.04, -0.03), np.random.uniform(0.00, 0.015)), vel=0.035),
-        BodyConfig(name="Earth", mass=3.00e-6, pos=(np.random.uniform(-0.055, -0.045), np.random.uniform(-0.015, 0.015)), vel=0.05),
-        BodyConfig(name="Mars", mass=3.23e-7, pos=(np.random.uniform(0.01, 0.02), np.random.uniform(0.06, 0.07)), vel=0.065),
-        BodyConfig(name="Saturn", mass=2.86e-4, pos=(np.random.uniform(0.075, 0.085), np.random.uniform(-0.025, -0.015)), vel=0.08),
-        BodyConfig(name="Uranus", mass=4.37e-5, pos=(np.random.uniform(-0.105, -0.095), np.random.uniform(0, 0.01)), vel=0.1),
-        BodyConfig(name="Neptune", mass=5.15e-5, pos=(np.random.uniform(-0.01, 0.01), np.random.uniform(0.115, 0.125)), vel=0.12),
-        BodyConfig(name="MoonA", mass=5e-8, pos=(0.005, 0.005), vel=math.sqrt(0.005**2 + 0.005**2))
+        BodyState(name="Jupiter", mass=0.000955, pos=(0, 0), vel=(0, 0)),
+        BodyState(name="Mercury", mass=1.65e-7, pos=(np.random.uniform(0.015, 0.025), np.random.uniform(-0.01, 0.01)), vel=0.02),
+        BodyState(name="Venus", mass=2.45e-6, pos=(np.random.uniform(-0.04, -0.03), np.random.uniform(0.00, 0.015)), vel=0.035),
+        BodyState(name="Earth", mass=3.00e-6, pos=(np.random.uniform(-0.055, -0.045), np.random.uniform(-0.015, 0.015)), vel=0.05),
+        BodyState(name="Mars", mass=3.23e-7, pos=(np.random.uniform(0.01, 0.02), np.random.uniform(0.06, 0.07)), vel=0.065),
+        BodyState(name="Saturn", mass=2.86e-4, pos=(np.random.uniform(0.075, 0.085), np.random.uniform(-0.025, -0.015)), vel=0.08),
+        BodyState(name="Uranus", mass=4.37e-5, pos=(np.random.uniform(-0.105, -0.095), np.random.uniform(0, 0.01)), vel=0.1),
+        BodyState(name="Neptune", mass=5.15e-5, pos=(np.random.uniform(-0.01, 0.01), np.random.uniform(0.115, 0.125)), vel=0.12),
+        BodyState(name="MoonA", mass=5e-8, pos=(0.005, 0.005), vel=math.sqrt(0.005**2 + 0.005**2))
     ]
 
     system_config = SolarSystemConfig(
         name="Jupiter Chaotic System",
         current_n_bodies=n_bodies,
         epsilon=0.0001,  # Very small epsilon for softening
-        animation_plot_duration_years=animation_plot_duration_years,
-        real_time_animation_seconds=real_time_seconds,
+        years_per_frame=0.001,
         fps=fps,
+        sim_steps_per_frame=64,
         initial_bodies_data=initial_bodies,
     )
 
@@ -125,12 +102,7 @@ def compile_loma_code():
     print("Compilation successful for Loma code.")
     return structs, lib
 
-def get_simulation_runner(cfg: SolarSystemConfig):
-    """Runs a complete simulation and animation for a given scenario."""
-    
-    NUM_FRAMES = int(cfg.real_time_animation_seconds * cfg.fps)
-    TIME_PER_FRAME_FOR_ANIM = cfg.animation_plot_duration_years / NUM_FRAMES
-
+def get_simulation_runner(cfg: SolarSystemConfig):    
     structs, lib = compile_loma_code()
     Vec2 = structs['Vec2']
     BodyState = structs['BodyState']
@@ -174,35 +146,18 @@ def get_simulation_runner(cfg: SolarSystemConfig):
 
     def get_get_next_states():
         sim_config_obj = SimConfig(
-            G=G_val, 
-            dt=TIME_PER_FRAME_FOR_ANIM,
+            G=G_val,
+            dt=cfg.years_per_frame / cfg.sim_steps_per_frame,
             epsilon_sq=cfg.epsilon**2,
             num_bodies=cfg.current_n_bodies
         )
-        states = []
-        for _ in range(10000):
-            temp_copy = BodyStateArray()
-            ctypes.memmove(ctypes.addressof(temp_copy),
-                    ctypes.addressof(current_body_states),
-                    ctypes.sizeof(BodyStateArray)) 
-            states.append(temp_copy)
-            lib.time_step_system(current_body_states, sim_config_obj, next_body_states_buffer)
-            ctypes.memmove(ctypes.addressof(current_body_states),
-                            ctypes.addressof(next_body_states_buffer),
-                            ctypes.sizeof(BodyStateArray)) 
-        return utils.convert_body_state_arrs_to_python(states, cfg.current_n_bodies)
+        body_states = []
+        for _ in range(256):
+            body_states.append(utils.convert_ctype_state_to_body_state(current_body_states, cfg))
+            for _ in range(cfg.sim_steps_per_frame):
+                lib.time_step_system(current_body_states, sim_config_obj, next_body_states_buffer)
+                ctypes.memmove(ctypes.addressof(current_body_states),
+                                ctypes.addressof(next_body_states_buffer),
+                                ctypes.sizeof(BodyStateArray)) 
+        return body_states
     return get_get_next_states
-
-if __name__ == '__main__':
-    # Run Solar System Scenario
-    # ss_params = setup_solar_system_scenario()
-    # run_simulation_scenario(ss_params)
-
-    # Run Jupiter Chaotic Scenario
-    jc_params = setup_jupiter_chaotic_scenario()
-    # run_simulation_scenario(jc_params)
-    sim_runner = get_simulation_runner(jc_params)
-    states = sim_runner()
-    for state in states:
-        print(state[0].pos.x)
-    
