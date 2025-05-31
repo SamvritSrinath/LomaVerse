@@ -7,15 +7,16 @@ import os
 import sys
 import numpy as np
 current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
+parent = os.path.dirname(os.path.dirname(current))
 sys.path.append(parent)
 import compiler
 import ctypes
+from config import SolarSystemConfig, PlotConfig, BodyConfig
 
 # --- Global Constants ---
 LOMA_CODE_FILENAME = 'planetary_motion_loma.py' # Loma physics code file (the one above)
-LOMA_CODE_SUBDIR = 'loma_code'             
-COMPILED_CODE_SUBDIR = '_code'             
+LOMA_CODE_SUBDIR = 'loma_code'
+COMPILED_CODE_SUBDIR = '_code'
 COMPILED_LIB_NAME_PREFIX = 'n_planets_lib_dyn_v2' # Unique name for this library version
 MAX_N_BODIES_CONST = 20                    # Max bodies Loma code is compiled for --> static
 
@@ -38,7 +39,7 @@ DEFAULT_PLANET_COLORS = {
 }
 
 # --- Scenario Definition Functions ---
-def setup_solar_system_scenario():
+def setup_solar_system_scenario() -> SolarSystemConfig:
     """Defines parameters for the standard Solar System simulation."""
     n_bodies = 9
     real_time_seconds = 25.0 # Animation video length
@@ -150,8 +151,8 @@ def run_simulation_scenario(scenario_params):
     if NUM_FRAMES <= 0: # Should not happen with current setup, but defensive
         print(f"Scenario '{scenario_params['name']}' has zero frames. Skipping.")
         return
-        
     TIME_PER_FRAME_FOR_ANIM = scenario_params["animation_plot_duration_years"] / NUM_FRAMES
+
     TRAIL_LENGTH = scenario_params["trail_length_frames"]
     
     # --- Compile Loma Code ---
@@ -353,8 +354,8 @@ def run_simulation_scenario(scenario_params):
 
 if __name__ == '__main__':
     # Run Solar System Scenario
-    ss_params = setup_solar_system_scenario()
-    run_simulation_scenario(ss_params)
+    # ss_params = setup_solar_system_scenario()
+    # run_simulation_scenario(ss_params)
 
     # Run Jupiter Chaotic Scenario
     jc_params = setup_jupiter_chaotic_scenario()
