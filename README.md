@@ -2,11 +2,13 @@
 
 Go to `project` to see ths source code for physics engine.
 
-Make sure you've installed `ffmpeg` in your system either via `brew` or `conda` (for MacOS).
+~~Make sure you've installed `ffmpeg` in your system either via `brew` or `conda` (for MacOS).~~
 
 ## Running Basic Simulations
 
-`cd project; python planetary_motion.py`
+`cd project; python server.py`
+
+Then, open up the debug server in a web browser.
 
 ## Work to be done
 
