@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LomaVerse - N-Body Simulation</title>
+    <title>LomaVerse - Scenario Builder</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/styles.css') }}"
@@ -16,33 +16,21 @@
         }
       }
     </script>
-    <script src="{{ url_for('static', filename='js/linkedlist.js') }}"></script>
-    <script
-      src="{{ url_for('static', filename='js/script.js') }}"
-      type="module"
-    ></script>
   </head>
   <body>
     <div class="container">
       <div class="sidebar">
-        <h2>LomaVerse</h2>
+        <h2>Scenario Builder</h2>
 
-        <!-- Preset Simulations -->
+        <!-- Navigation -->
         <div class="controls">
-          <button id="solarsysButton" class="button">Solar System</button>
-          <button id="jupiterchaoticButton" class="button">
-            Jupiter System
-          </button>
-          <a href="/scenario-builder" class="button secondary"
-            >Scenario Builder</a
-          >
+          <a href="/" class="button secondary">Back to Simulation</a>
         </div>
 
-        <!-- Visualization Toggle -->
-        <div class="controls">
-          <button id="toggleViewButton" class="button secondary">
-            Toggle 2D/3D
-          </button>
+        <!-- Scenario Name -->
+        <div class="form-group">
+          <label class="label">Scenario Name</label>
+          <input type="text" id="scenarioName" class="input" required />
         </div>
 
         <!-- Planet Configuration Form -->
@@ -74,34 +62,34 @@
                 id="posZ"
                 class="input"
                 step="0.01"
-                required
+                value="0"
               />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="label">Velocity (vx, vy, vz)</label>
+            <label class="label">Velocity (vx, vy, vz) - Optional</label>
             <div class="input-group">
               <input
                 type="number"
                 id="velX"
                 class="input"
                 step="0.01"
-                required
+                value="0"
               />
               <input
                 type="number"
                 id="velY"
                 class="input"
                 step="0.01"
-                required
+                value="0"
               />
               <input
                 type="number"
                 id="velZ"
                 class="input"
                 step="0.01"
-                required
+                value="0"
               />
             </div>
           </div>
@@ -118,8 +106,8 @@
           </div>
 
           <div class="form-group">
-            <label class="label">Color</label>
-            <input type="color" id="color" class="input" value="#ffffff" />
+            <label class="label">Color (Optional)</label>
+            <input type="color" id="color" class="input" />
           </div>
 
           <button type="submit" class="button">Add Planet</button>
@@ -130,24 +118,25 @@
           <!-- Planets will be added here dynamically -->
         </div>
 
-        <!-- Simulation Controls -->
+        <!-- Save Scenario -->
         <div class="controls">
-          <button id="playButton" class="button">Play</button>
-          <button id="pauseButton" class="button secondary">Pause</button>
-          <button id="resetButton" class="button secondary">Reset</button>
-          <button id="cameraFollow" class="button secondary">
-            Toggle Camera Follow
-          </button>
+          <button id="saveScenario" class="button">Save Scenario</button>
+          <button id="clearScenario" class="button secondary">Clear All</button>
         </div>
       </div>
 
       <div class="main-content">
         <div id="canvasparent"></div>
         <div class="status-bar">
-          <span id="simName">Select a simulation</span>
-          <span id="years">0.000</span>
+          <span id="scenarioStatus">No scenario loaded</span>
+          <span id="planetCount">0 planets</span>
         </div>
       </div>
     </div>
+
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/scenario_builder.js') }}"
+    ></script>
   </body>
 </html>
