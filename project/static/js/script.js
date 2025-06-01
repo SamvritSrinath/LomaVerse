@@ -68,24 +68,32 @@ const initThreeJSObjects = () => {
 
     const controls = new OrbitControls(camera, labelRenderer.domElement);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(5, 10, 7.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.4);
     scene.add(directionalLight);
 
-    const light = new THREE.AmbientLight(0xffffff, 0.7);
+    const light = new THREE.AmbientLight(0xffffff, 1);
     scene.add(light);
 
     const axesHelper = new THREE.AxesHelper(1);
     axesHelper.layers.enableAll();
     scene.add(axesHelper);
 
+    const loader = new THREE.TextureLoader();
+    const milkyWayTexture = loader.load('/static/jpg/lotsofstars.jpg', () => {
+        const rt = new THREE.WebGLCubeRenderTarget(milkyWayTexture.image.height);
+        rt.fromEquirectangularTexture(renderer, milkyWayTexture);
+        
+        scene.background = rt.texture; // Set as background
+        scene.environment = rt.texture; // Use for reflections
+    });
+
     return [scene, camera, renderer, labelRenderer]
 }
 
-const getThreeJSPlanet = (planetState, currentState) => {
+const getThreeJSPlanet = (planetState, currentState, scene) => {
     const radius = getRadius(planetState.name, currentState);
     const geometry = new THREE.SphereGeometry(radius, 32, 32);
-    const material = new THREE.MeshStandardMaterial({ color: getColor(planetState.name), metalness: 0.2, roughness: 0.2 });
+    const material = new THREE.MeshStandardMaterial({ color: getColor(planetState.name), metalness: 0, envMap: scene.environment });
     const sphere = new THREE.Mesh(geometry, material);
     sphere.position.set(planetState.pos[0], planetState.pos[1], 0);
     const labelDiv = document.createElement("div");
@@ -102,7 +110,7 @@ const initAnimation = (chronology, sessionCfg) => {
     const [scene, camera, renderer, labelRenderer] = initThreeJSObjects();
     const planetObjects = [];
     chronology[0].forEach((planetState) => {
-        const sphere = getThreeJSPlanet(planetState, chronology[0])
+        const sphere = getThreeJSPlanet(planetState, chronology[0], scene)
         scene.add(sphere);
         planetObjects.push({
             "body": sphere,
