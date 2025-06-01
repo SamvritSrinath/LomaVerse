@@ -140,7 +140,7 @@ def get_simulation_runner(cfg: SolarSystemConfig):
     #         current_body_states[0].mom.x -= total_momentum_x 
     #         current_body_states[0].mom.y -= total_momentum_y
 
-    def get_get_next_states():
+    def get_get_next_states(simulation_steps):
         sim_config_obj = SimConfig(
             G=G_val,
             dt=cfg.years_per_frame / cfg.sim_steps_per_frame,
@@ -148,7 +148,7 @@ def get_simulation_runner(cfg: SolarSystemConfig):
             num_bodies=cfg.current_n_bodies
         )
         body_states = []
-        for _ in range(256):
+        for _ in range(simulation_steps):
             body_states.append(utils.convert_ctype_state_to_body_state(current_body_states, cfg))
             for _ in range(cfg.sim_steps_per_frame):
                 lib.time_step_system(current_body_states, sim_config_obj, next_body_states_buffer)

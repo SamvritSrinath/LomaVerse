@@ -24,7 +24,7 @@ def init_session():
 
 @app.get("/state/<session_id>")
 def get_state(session_id):
-    new_states = sessions[session_id]()
+    new_states = sessions[session_id](256)
     return jsonify(new_states)
 
 if __name__ == '__main__':
