@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LomaVerse - Unit Conversions</title>
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='css/styles.css') }}"
+    />
+    <style>
+      .conversion-container {
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 2rem;
+        background-color: var(--surface);
+        border-radius: 0.5rem;
+      }
+      .conversion-group {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--secondary);
+      }
+      .conversion-group:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+      }
+      .conversion-group h3 {
+        margin-top: 0;
+        color: var(--primary);
+      }
+      .conversion-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+      }
+      .conversion-group input,
+      .conversion-group select {
+        width: calc(100% - 1.2rem);
+        padding: 0.6rem;
+        background-color: var(--background);
+        border: 1px solid var(--secondary);
+        border-radius: 0.375rem;
+        color: var(--text);
+        margin-bottom: 0.5rem;
+        box-sizing: border-box;
+      }
+      .conversion-group .output-area {
+        display: flex;
+        align-items: center;
+      }
+      .conversion-group .output {
+        flex-grow: 1;
+        font-weight: bold;
+        color: var(--text);
+        padding: 0.6rem;
+        background-color: var(--background);
+        border: 1px solid var(--primary);
+        border-radius: 0.375rem;
+        min-height: 1.5em;
+        word-wrap: break-word;
+      }
+      .copy-button {
+        margin-left: 0.5rem;
+        padding: 0.5rem 0.8rem; /* Adjusted padding */
+      }
+      .inline-inputs {
+        display: flex;
+        gap: 1rem;
+      }
+      .inline-inputs > div {
+        flex: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="sidebar">
+        <h2>LomaVerse</h2>
+        <div class="controls">
+          <a href="/" class="button secondary">Back to Simulation</a>
+          <a
+            href="/scenario-builder"
+            class="button secondary"
+            style="margin-top: 5px"
+            >Scenario Builder</a
+          >
+        </div>
+      </div>
+      <div class="main-content">
+        <div class="conversion-container">
+          <h1>Unit Conversions</h1>
+
+          <div class="conversion-group">
+            <h3>Mass</h3>
+            <label for="massValue">Value:</label>
+            <input
+              type="number"
+              id="massValue"
+              step="any"
+              placeholder="Enter value"
+            />
+
+            <div class="inline-inputs">
+              <div>
+                <label for="massFromUnit">From Unit:</label>
+                <select id="massFromUnit">
+                  <option value="solarmass">Solar Masses (M☉)</option>
+                  <option value="kg" selected>Kilograms (kg)</option>
+                </select>
+              </div>
+              <div>
+                <label for="massToUnit">To Unit:</label>
+                <select id="massToUnit">
+                  <option value="kg">Kilograms (kg)</option>
+                  <option value="solarmass" selected>Solar Masses (M☉)</option>
+                </select>
+              </div>
+            </div>
+
+            <label>Result:</label>
+            <div class="output-area">
+              <div class="output" id="massResult"></div>
+              <button id="copyMassResult" class="button secondary copy-button">
+                Copy
+              </button>
+            </div>
+          </div>
+
+          <div class="conversion-group">
+            <h3>Velocity</h3>
+            <label for="velocityValue">Value:</label>
+            <input
+              type="number"
+              id="velocityValue"
+              step="any"
+              placeholder="Enter value"
+            />
+
+            <div class="inline-inputs">
+              <div>
+                <label for="velocityFromUnit">From Unit:</label>
+                <select id="velocityFromUnit">
+                  <option value="km_s">km/s</option>
+                  <option value="au_day">AU/day</option>
+                  <option value="au_year" selected>AU/year</option>
+                </select>
+              </div>
+              <div>
+                <label for="velocityToUnit">To Unit:</label>
+                <select id="velocityToUnit">
+                  <option value="au_year" selected>AU/year</option>
+                  <option value="km_s">km/s</option>
+                  <option value="au_day">AU/day</option>
+                </select>
+              </div>
+            </div>
+
+            <label>Result:</label>
+            <div class="output-area">
+              <div class="output" id="velocityResult"></div>
+              <button
+                id="copyVelocityResult"
+                class="button secondary copy-button"
+              >
+                Copy
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/conversions.js') }}"></script>
+  </body>
+</html>

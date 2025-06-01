@@ -16,24 +16,48 @@
         }
       }
     </script>
+    <style>
+      .input-group-tight {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .input-group-tight .input {
+        flex-grow: 1;
+      }
+      .input-group-tight select {
+        padding: 0.5rem;
+        background-color: var(--background);
+        border: 1px solid var(--secondary);
+        color: var(--text);
+        border-radius: 0.375rem;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
       <div class="sidebar">
         <h2>Scenario Builder</h2>
 
-        <!-- Navigation -->
         <div class="controls">
           <a href="/" class="button secondary">Back to Simulation</a>
+          <a
+            href="/conversions"
+            class="button secondary"
+            style="margin-top: 5px"
+            >Unit Conversions</a
+          >
         </div>
+        <p style="font-size: 0.8em; color: var(--text-secondary)">
+          Define planets with mass in kg, position in AU. Velocity components
+          will be converted to AU/year for simulation.
+        </p>
 
-        <!-- Scenario Name -->
         <div class="form-group">
           <label class="label">Scenario Name</label>
           <input type="text" id="scenarioName" class="input" required />
         </div>
 
-        <!-- Planet Configuration Form -->
         <form id="planetForm" class="planet-form">
           <div class="form-group">
             <label class="label">Name</label>
@@ -41,67 +65,83 @@
           </div>
 
           <div class="form-group">
-            <label class="label">Position (x, y, z)</label>
+            <label class="label">Position (x, y, z in AU)</label>
             <div class="input-group">
               <input
                 type="number"
                 id="posX"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                placeholder="AU"
               />
               <input
                 type="number"
                 id="posY"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                placeholder="AU"
               />
               <input
                 type="number"
                 id="posZ"
                 class="input"
-                step="0.01"
+                step="any"
                 value="0"
+                placeholder="AU"
               />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="label">Velocity (vx, vy, vz) - Optional</label>
+            <label class="label">Velocity Components (vx, vy, vz)</label>
             <div class="input-group">
               <input
                 type="number"
                 id="velX"
                 class="input"
-                step="0.01"
+                step="any"
                 value="0"
+                placeholder="vx"
               />
               <input
                 type="number"
                 id="velY"
                 class="input"
-                step="0.01"
+                step="any"
                 value="0"
+                placeholder="vy"
               />
               <input
                 type="number"
                 id="velZ"
                 class="input"
-                step="0.01"
+                step="any"
                 value="0"
+                placeholder="vz"
               />
             </div>
+            <label class="label" style="margin-top: 0.5rem"
+              >Velocity Unit (Optional, defaults to AU/year if components are
+              non-zero):</label
+            >
+            <select id="velocityUnitScenario" class="input">
+              <option value="au_year" selected>AU/year</option>
+              <option value="km_s">km/s</option>
+              <option value="au_day">AU/day</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label class="label">Mass</label>
+            <label class="label">Mass (kg)</label>
             <input
               type="number"
               id="mass"
               class="input"
-              step="0.0001"
+              step="any"
               required
+              placeholder="kg"
             />
           </div>
 
@@ -110,25 +150,23 @@
             <input type="color" id="color" class="input" />
           </div>
 
-          <button type="submit" class="button">Add Planet</button>
+          <button type="submit" class="button">Add Planet to Scenario</button>
         </form>
 
-        <!-- Planet List -->
-        <div class="planet-list" id="planetList">
-          <!-- Planets will be added here dynamically -->
-        </div>
+        <div class="planet-list" id="planetList"></div>
 
-        <!-- Save Scenario -->
         <div class="controls">
           <button id="saveScenario" class="button">Save Scenario</button>
-          <button id="clearScenario" class="button secondary">Clear All</button>
+          <button id="clearScenario" class="button secondary">
+            Clear All Planets
+          </button>
         </div>
       </div>
 
       <div class="main-content">
         <div id="canvasparent"></div>
         <div class="status-bar">
-          <span id="scenarioStatus">No scenario loaded</span>
+          <span id="scenarioStatus">Define your scenario</span>
           <span id="planetCount">0 planets</span>
         </div>
       </div>

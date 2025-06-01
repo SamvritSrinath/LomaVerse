@@ -27,93 +27,120 @@
       <div class="sidebar">
         <h2>LomaVerse</h2>
 
-        <!-- Preset Simulations -->
         <div class="controls">
           <button id="solarsysButton" class="button">Solar System</button>
           <button id="jupiterchaoticButton" class="button">
             Jupiter System
           </button>
+          <button id="trulychaoticButton" class="button">True Chaotic</button>
           <a href="/scenario-builder" class="button secondary"
             >Scenario Builder</a
           >
+          <a
+            href="/conversions"
+            class="button secondary"
+            style="margin-top: 5px"
+            >Unit Conversions</a
+          >
         </div>
 
-        <!-- Visualization Toggle -->
         <div class="controls">
           <button id="toggleViewButton" class="button secondary">
             Toggle 2D/3D
           </button>
         </div>
 
-        <!-- Planet Configuration Form -->
         <form id="planetForm" class="planet-form">
+          <p style="font-size: 0.8em; color: var(--text-secondary)">
+            Mass in M☉, Position in AU. Velocity in selected unit (converted to
+            AU/year).
+          </p>
           <div class="form-group">
             <label class="label">Name</label>
             <input type="text" id="planetName" class="input" required />
           </div>
 
           <div class="form-group">
-            <label class="label">Position (x, y, z)</label>
+            <label class="label">Position (x, y, z in AU)</label>
             <div class="input-group">
               <input
                 type="number"
                 id="posX"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                placeholder="AU"
               />
               <input
                 type="number"
                 id="posY"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                placeholder="AU"
               />
               <input
                 type="number"
                 id="posZ"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                value="0"
+                placeholder="AU"
               />
             </div>
           </div>
 
           <div class="form-group">
-            <label class="label">Velocity (vx, vy, vz)</label>
+            <label class="label">Velocity Components (vx, vy, vz)</label>
             <div class="input-group">
               <input
                 type="number"
                 id="velX"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                value="0"
+                placeholder="vx"
               />
               <input
                 type="number"
                 id="velY"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                value="0"
+                placeholder="vy"
               />
               <input
                 type="number"
                 id="velZ"
                 class="input"
-                step="0.01"
+                step="any"
                 required
+                value="0"
+                placeholder="vz"
               />
             </div>
+            <label class="label" style="margin-top: 0.5rem"
+              >Velocity Unit:</label
+            >
+            <select id="velocityUnit" class="input">
+              <option value="au_year" selected>AU/year</option>
+              <option value="km_s">km/s</option>
+              <option value="au_day">AU/day</option>
+            </select>
           </div>
 
           <div class="form-group">
-            <label class="label">Mass</label>
+            <label class="label">Mass (Solar Masses M☉)</label>
             <input
               type="number"
               id="mass"
               class="input"
-              step="0.0001"
+              step="any"
               required
+              placeholder="M☉"
             />
           </div>
 
@@ -122,30 +149,52 @@
             <input type="color" id="color" class="input" value="#ffffff" />
           </div>
 
-          <button type="submit" class="button">Add Planet</button>
+          <button type="submit" class="button">Add Planet (Conceptual)</button>
+          <p style="font-size: 0.7em; color: var(--text-secondary)">
+            Use Scenario Builder to save custom systems.
+          </p>
         </form>
 
-        <!-- Planet List -->
-        <div class="planet-list" id="planetList">
-          <!-- Planets will be added here dynamically -->
-        </div>
+        <div class="planet-list" id="planetList"></div>
 
-        <!-- Simulation Controls -->
-        <div class="controls">
-          <button id="playButton" class="button">Play</button>
-          <button id="pauseButton" class="button secondary">Pause</button>
-          <button id="resetButton" class="button secondary">Reset</button>
-          <button id="cameraFollow" class="button secondary">
-            Toggle Camera Follow
-          </button>
+        <div class="form-group">
+          <label class="label" style="margin-top: 1rem; margin-bottom: 0.5rem"
+            >Live Positions (World Units)</label
+          >
+        </div>
+        <div class="position-table-container">
+          <table class="position-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>X (AU)</th>
+                <th>Y (AU)</th>
+                <th>Z (AU)</th>
+              </tr>
+            </thead>
+            <tbody id="positionTableBody"></tbody>
+          </table>
         </div>
       </div>
 
       <div class="main-content">
         <div id="canvasparent"></div>
-        <div class="status-bar">
-          <span id="simName">Select a simulation</span>
-          <span id="years">0.000</span>
+        <div class="status-bar-container">
+          <div class="status-bar">
+            <span id="simName">Select a simulation</span>
+            <span id="years">0.000 years</span>
+            <span id="cameraPosition" class="status-item"
+              >Cam: (X: 0.00, Y: 0.00, Z: 0.00)</span
+            >
+          </div>
+          <div class="central-controls">
+            <button id="playButton" class="button">Play</button>
+            <button id="pauseButton" class="button secondary">Pause</button>
+            <button id="resetButton" class="button secondary">Reset Sim</button>
+            <button id="cameraFollow" class="button secondary">
+              Follow Center
+            </button>
+          </div>
         </div>
       </div>
     </div>
