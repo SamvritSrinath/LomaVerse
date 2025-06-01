@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script type="importmap">
+			{
+				"imports": {
+                    "three": "https://unpkg.com/three@0.148.0/build/three.module.js",
+                    "three/addons/": "https://unpkg.com/three@0.148.0/examples/jsm/"
+				}
+			}
+		</script>
+        <script src="{{ url_for('static', filename='js/linkedlist.js') }}"></script>
+        <script src="{{ url_for('static', filename='js/script.js') }}" type="module"></script>
+    </head>
+    <body>
+        <h1>Welcome to LomaVerse</h1>
+        <div id="menu">
+            <h2>Choose your animation</h2>
+            <button id="solarsysButton">Solar System</button>
+            <button id="jupiterchaoticButton">Jupiter Chaotic</button>
+        </div>
+        <div id="controls" style="display: none;">
+            <h2 id="simName"></h2>
+            <div>
+                <span>Years Gone By: </span><span id="years"></span>
+            </div>
+            <button id="pauseButton">Pause</button>
+            <button id="playButton">Play</button>
+            <button id="cameraFollow">Camera Follow Toggle</button>
+        </div>
+        <div id="canvasparent"></div>
+    </body>
+</html>
