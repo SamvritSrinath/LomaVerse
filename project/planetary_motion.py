@@ -23,7 +23,7 @@ G_val = (2.0 * math.pi)**2 # Gravitational constant (AU^3 / (SolarMass * Year^2)
 def setup_solar_system_scenario() -> SolarSystemConfig:
     """Defines parameters for the standard Solar System simulation."""
     n_bodies = 9
-    fps = 60
+    fps = 120
 
     initial_bodies = [
         BodyState(name="Sun", mass=1.0, pos=(0, 0), vel=(0, 0)),
@@ -41,9 +41,9 @@ def setup_solar_system_scenario() -> SolarSystemConfig:
         name="Solar System",
         current_n_bodies=n_bodies,
         epsilon=0.05,
-        years_per_frame=0.001,
+        years_per_frame=0.01,
         fps=fps,
-        sim_steps_per_frame=64,
+        sim_steps_per_frame=128,
         initial_bodies_data=initial_bodies,
     )
 
@@ -52,7 +52,7 @@ def setup_solar_system_scenario() -> SolarSystemConfig:
 def setup_jupiter_chaotic_scenario():
     """Defines parameters for a Jupiter-centered system with 8 other solar system planets."""
     n_bodies = 9 # Jupiter + the 8 planets
-    fps = 60
+    fps = 120
     
     initial_bodies = [
         BodyState(name="Jupiter", mass=0.000955, pos=(0, 0), vel=(0, 0)),
