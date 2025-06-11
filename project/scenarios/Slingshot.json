@@ -1,0 +1,37 @@
+{
+  "name": "Gravitational Deflection",
+  "planets": [
+    {
+      "name": "Jupiter",
+      "pos": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "vel": {
+        "x": 0,
+        "y": 0,
+        "z": 0
+      },
+      "mass": 0.00095,
+      "color": "#C4A484",
+      "radius": 0.2
+    },
+    {
+      "name": "Probe",
+      "pos": {
+        "x": -10,
+        "y": -0.2,
+        "z": 0
+      },
+      "vel": {
+        "x": 6,
+        "y": 0.1,
+        "z": 0
+      },
+      "mass": 1e-15,
+      "color": "#DDDDDD",
+      "radius": 0.005
+    }
+  ]
+}

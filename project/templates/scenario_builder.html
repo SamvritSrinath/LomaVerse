@@ -60,7 +60,7 @@
 
         <form id="planetForm" class="planet-form">
           <div class="form-group">
-            <label class="label">Name</label>
+            <label class="label">Celestial Body Name</label>
             <input type="text" id="planetName" class="input" required />
           </div>
 
@@ -95,6 +95,14 @@
           </div>
 
           <div class="form-group">
+            <label class="label" style="margin-top: 0.5rem"
+              >Velocity Unit:</label
+            >
+            <select id="velocityUnitScenario" class="input">
+              <option value="au_year" selected>AU/year</option>
+              <option value="km_s">km/s</option>
+              <option value="au_day">AU/day</option>
+            </select>
             <label class="label">Velocity Components (vx, vy, vz)</label>
             <div class="input-group">
               <input
@@ -122,15 +130,6 @@
                 placeholder="vz"
               />
             </div>
-            <label class="label" style="margin-top: 0.5rem"
-              >Velocity Unit (Optional, defaults to AU/year if components are
-              non-zero):</label
-            >
-            <select id="velocityUnitScenario" class="input">
-              <option value="au_year" selected>AU/year</option>
-              <option value="km_s">km/s</option>
-              <option value="au_day">AU/day</option>
-            </select>
           </div>
 
           <div class="form-group">
