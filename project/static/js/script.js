@@ -1,4 +1,4 @@
-// script.js (Complete - Incorporating all latest changes)
+// script.js (Re-introducing 2D/3D Toggle)
 import * as THREE from 'three';
 import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {
@@ -63,14 +63,14 @@ const MAX_2D_TRAIL_LENGTH = 200;
 const POSITION_TABLE_UPDATE_INTERVAL = 250;
 
 let visualizationMode = '3D';
-let scene, camera, renderer, labelRenderer, controls, gridHelperXY;
+let scene, camera, renderer, labelRenderer, controls;
 let canvas2D, ctx2D;
 let planetObjects = [];
 let current2DScale = 15,
   current2DOffsetX = 0,
   current2DOffsetY = 0;
 let currentSimSessionId = null,
-  currentSimConfigData = null; // Renamed currentSimConfig to currentSimConfigData for clarity
+  currentSimConfigData = null;
 let isPlayingGlobal = false,
   animationFrameId = null,
   originalSimulationNameForReset = '';
@@ -94,7 +94,11 @@ function convertVelocityToAuYear(vx, vy, vz, unit) {
   return {x: vx, y: vy, z: vz};
 }
 
-const getRadius = (name, currentStateInFrame, systemName = '') => {
+const getRadius = (planetState, currentStateInFrame, systemName = '') => {
+  if (planetState.radius) {
+    return planetState.radius;
+  }
+  const name = planetState.name;
   let baseVisualSize =
     DEFAULT_PLANET_VISUAL_RADII[name] || DEFAULT_PLANET_VISUAL_RADII['Body'];
   let systemReferenceSize = 1.0;
@@ -105,8 +109,8 @@ const getRadius = (name, currentStateInFrame, systemName = '') => {
       ),
       1.0,
     );
-  let scaleFactor = 0.025;
-  let exponent = 0.65;
+  let scaleFactor = 0.025,
+    exponent = 0.65;
   if (systemName.toLowerCase().includes('solar system')) {
     scaleFactor = 0.08;
     exponent = 0.7;
@@ -139,6 +143,7 @@ const getRadius = (name, currentStateInFrame, systemName = '') => {
 
 const getColor = name =>
   DEFAULT_PLANET_COLORS[name] || DEFAULT_PLANET_COLORS['Body'];
+
 function reset2DView() {
   if (!canvas2D) return;
   current2DScale = 15;
@@ -183,15 +188,14 @@ const initThreeJSObjects = () => {
   controls.screenSpacePanning = true;
   controls.minDistance = 0.01;
   controls.maxDistance = 1500;
-  controls.object.up = new THREE.Vector3(0, 0, 1); // Explicitly set camera up
+  controls.object.up = new THREE.Vector3(0, 0, 1);
 
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
   scene.add(ambientLight);
   const directionalLight = new THREE.DirectionalLight(0xffffff, 1.0);
   directionalLight.position.set(10, 10, 15);
   scene.add(directionalLight);
-
-  gridHelperXY = new THREE.GridHelper(200, 100, 0x666666, 0x333333);
+  const gridHelperXY = new THREE.GridHelper(200, 100, 0x666666, 0x333333);
   gridHelperXY.rotation.x = Math.PI / 2;
   scene.add(gridHelperXY);
 
@@ -222,22 +226,23 @@ const initThreeJSObjects = () => {
   });
   return [scene, camera, renderer, labelRenderer, controls];
 };
+
 const getThreeJSPlanet = (
   planetState,
   currentStateInFrame,
   currentScene,
   systemName,
 ) => {
-  const radius = getRadius(planetState.name, currentStateInFrame, systemName);
+  const radius = getRadius(planetState, currentStateInFrame, systemName);
   const geometry = new THREE.SphereGeometry(radius, 32, 16);
   const material = new THREE.MeshStandardMaterial({
-    color: getColor(planetState.name),
+    color: planetState.color || getColor(planetState.name),
     metalness: 0.1,
     roughness: 0.7,
     envMap: currentScene.environment,
     emissive:
       planetState.name === 'Sun' || planetState.name.startsWith('Star')
-        ? getColor(planetState.name)
+        ? planetState.color || getColor(planetState.name)
         : 0x000000,
     emissiveIntensity:
       planetState.name === 'Sun' || planetState.name.startsWith('Star')
@@ -275,7 +280,7 @@ const getThreeJSPlanet = (
 };
 
 const initAnimation = (initialChronology, sessionData) => {
-  currentSimConfigData = sessionData; // Store the full {session_id, system_config}
+  currentSimConfigData = sessionData;
   const system_config = sessionData.system_config;
 
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
@@ -305,7 +310,6 @@ const initAnimation = (initialChronology, sessionData) => {
           n = n.next;
         }
       }
-      if (pObj.trail2D) pObj.trail2D = new LinkedList();
     });
   }
   planetObjects = [];
@@ -338,7 +342,7 @@ const initAnimation = (initialChronology, sessionData) => {
     const dl = new THREE.DirectionalLight(0xffffff, 1.0);
     dl.position.set(10, 10, 15);
     scene.add(dl);
-    gridHelperXY = new THREE.GridHelper(200, 100, 0x666666, 0x333333);
+    const gridHelperXY = new THREE.GridHelper(200, 100, 0x666666, 0x333333);
     gridHelperXY.rotation.x = Math.PI / 2;
     scene.add(gridHelperXY);
     const l = new THREE.TextureLoader();
@@ -356,6 +360,7 @@ const initAnimation = (initialChronology, sessionData) => {
       },
     );
   }
+
   if (camera && controls) {
     let d = 20;
     if (system_config.name.toLowerCase().includes('solar system')) d = 50;
@@ -366,6 +371,7 @@ const initAnimation = (initialChronology, sessionData) => {
     controls.target.set(0, 0, 0);
     controls.update();
   }
+
   if (
     initialChronology &&
     initialChronology.length > 0 &&
@@ -397,6 +403,7 @@ const initAnimation = (initialChronology, sessionData) => {
       });
     });
   }
+
   let chronology = [...initialChronology];
   let currentFrameIndex = 0;
   let yearsGoneBy = 0;
@@ -454,6 +461,7 @@ const initAnimation = (initialChronology, sessionData) => {
               sumY += currentPosArray[1];
               sumZ += currentPosArray[2];
               activeBodies++;
+
               if (planetObj.trail.size() > 100) {
                 const old = planetObj.trail.popFront();
                 if (old) {
@@ -470,7 +478,7 @@ const initAnimation = (initialChronology, sessionData) => {
                 const lP = [new THREE.Vector3(...tS), new THREE.Vector3(...tE)];
                 const g = new THREE.BufferGeometry().setFromPoints(lP);
                 const m = new THREE.LineBasicMaterial({
-                  color: getColor(state.name),
+                  color: state.color || getColor(state.name),
                   opacity: 0.5,
                   transparent: true,
                 });
@@ -500,7 +508,7 @@ const initAnimation = (initialChronology, sessionData) => {
           )} years`;
         }
       }
-      // CHANGED: Buffering logic - fetch if less than 5s left
+
       if (
         !stateLock &&
         currentSimSessionId &&
@@ -508,18 +516,9 @@ const initAnimation = (initialChronology, sessionData) => {
         (chronology.length - currentFrameIndex) / system_config.fps < 5.0
       ) {
         stateLock = true;
-        console.log(
-          `Requesting states. Buffer: ${(
-            (chronology.length - currentFrameIndex) /
-            system_config.fps
-          ).toFixed(1)}s. FPS: ${system_config.fps}`,
-        );
         getNextStatesChunk(currentSimSessionId)
           .then(nC => {
             if (nC && nC.length > 0) chronology.push(...nC);
-            console.log(
-              `Received states. New chronology: ${chronology.length}`,
-            );
             stateLock = false;
           })
           .catch(e => {
@@ -527,7 +526,6 @@ const initAnimation = (initialChronology, sessionData) => {
             stateLock = false;
           });
       }
-      // Slicing chronology logic
       if (
         !stateLock &&
         currentFrameIndex > 800 &&
@@ -537,7 +535,6 @@ const initAnimation = (initialChronology, sessionData) => {
         chronology = chronology.slice(currentFrameIndex);
         currentFrameIndex = 0;
         stateLock = false;
-        console.log(`Sliced chronology. New length: ${chronology.length}`);
       }
     }
     if (camera) {
@@ -567,10 +564,7 @@ const initAnimation = (initialChronology, sessionData) => {
 };
 
 const getNextStatesChunk = async sessionId => {
-  if (!sessionId) {
-    console.warn('No session ID.');
-    return [];
-  }
+  if (!sessionId) return [];
   try {
     const r = await fetch(`/state/${sessionId}`);
     if (!r.ok) {
@@ -578,16 +572,14 @@ const getNextStatesChunk = async sessionId => {
       throw new Error(eD.error || `Server error: ${r.status}`);
     }
     const d = await r.json();
-    if (!d || !Array.isArray(d)) {
-      console.warn('Invalid data /state:', d);
-      return [];
-    }
+    if (!d || !Array.isArray(d)) return [];
     return d;
   } catch (e) {
     console.error('Err fetch chunk:', e);
     return [];
   }
 };
+
 const init2DCanvas = () => {
   const cP = document.querySelector('#canvasparent');
   if (!cP) return;
@@ -648,6 +640,7 @@ const init2DCanvas = () => {
   });
   canvas2D.style.cursor = 'grab';
 };
+
 const toggleVisualizationMode = () => {
   visualizationMode = visualizationMode === '3D' ? '2D' : '3D';
   const cP = document.querySelector('#canvasparent');
@@ -686,7 +679,7 @@ const render2D = currentPlanetObjs => {
 
   currentPlanetObjs.forEach(obj => {
     if (!obj.body || !obj.trail2D) return;
-    const planetColor = getColor(obj.name);
+    const planetColor = obj.body.material.color.getStyle();
 
     if (obj.trail2D.size() > 1) {
       ctx2D.beginPath();
@@ -848,21 +841,27 @@ if (planetForm) {
   });
 }
 
-async function init(simulationName) {
-  originalSimulationNameForReset = simulationName;
+async function startSimulation(url, isScenario = false, scenarioName = '') {
+  const simName = scenarioName;
+  originalSimulationNameForReset = isScenario ? '' : simName;
   const simNameEl = document.getElementById('simName');
-  if (simNameEl) simNameEl.textContent = `Loading ${simulationName}...`;
+  if (simNameEl) simNameEl.textContent = `Loading ${simName}...`;
   isPlayingGlobal = false;
   if (animationFrameId) cancelAnimationFrame(animationFrameId);
   animationFrameId = null;
   const tableBody = document.getElementById('positionTableBody');
   if (tableBody) tableBody.innerHTML = '';
+
+  const fetchOptions = isScenario
+    ? {}
+    : {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({simulation_name: simName}),
+      };
+
   try {
-    const response = await fetch('/init_session', {
-      method: 'POST',
-      headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({simulation_name: simulationName}),
-    });
+    const response = await fetch(url, fetchOptions);
     if (!response.ok) {
       const errorData = await response
         .json()
@@ -871,9 +870,15 @@ async function init(simulationName) {
     }
     const sessionData = await response.json();
     currentSimSessionId = sessionData.session_id;
-    currentSimConfigData = sessionData; // Store full {session_id, system_config}
-    if (simNameEl && sessionData.system_config)
+    currentSimConfigData = sessionData;
+    if (simNameEl && sessionData.system_config) {
       simNameEl.textContent = sessionData.system_config.name;
+      if (isScenario) {
+        originalSimulationNameForReset = sessionData.system_config.name;
+      } else {
+        originalSimulationNameForReset = simName;
+      }
+    }
     const initialStates = await getNextStatesChunk(currentSimSessionId);
     initAnimation(initialStates, sessionData);
     if (sessionData.system_config)
@@ -882,11 +887,40 @@ async function init(simulationName) {
           sessionData.system_config.bodies,
       );
   } catch (e) {
-    console.error(`Init '${simulationName}' error:`, e);
+    console.error(`Init error:`, e);
     if (simNameEl)
       simNameEl.textContent = `Error: ${e.message.substring(0, 100)}`;
     currentSimSessionId = null;
     currentSimConfigData = null;
+  }
+}
+
+async function populateSavedScenarios() {
+  const listEl = document.getElementById('savedScenariosList');
+  try {
+    const response = await fetch('/list_scenarios');
+    const scenarios = await response.json();
+    if (scenarios.length === 0) {
+      listEl.innerHTML = '<p>No saved scenarios found.</p>';
+      return;
+    }
+    listEl.innerHTML = '';
+    scenarios.forEach(scenario => {
+      const btn = document.createElement('button');
+      btn.className = 'button secondary scenario-button';
+      btn.textContent = `${scenario.name} (${scenario.planet_count} bodies)`;
+      btn.onclick = () => {
+        startSimulation(
+          `/load_scenario/${scenario.filename}`,
+          true,
+          scenario.name,
+        );
+      };
+      listEl.appendChild(btn);
+    });
+  } catch (error) {
+    console.error('Failed to load scenarios:', error);
+    listEl.innerHTML = '<p>Error loading scenarios.</p>';
   }
 }
 
@@ -895,18 +929,12 @@ window.onload = async () => {
   if (!scene) {
     initThreeJSObjects();
     function dA() {
-      // Dummy animate for empty scene
       if (!currentSimSessionId) {
         requestAnimationFrame(dA);
-        if (visualizationMode === '3D' && controls) controls.update();
-        if (visualizationMode === '3D' && renderer && scene && camera)
-          renderer.render(scene, camera);
-        if (visualizationMode === '3D' && labelRenderer && scene && camera)
+        if (controls) controls.update();
+        if (renderer && scene && camera) renderer.render(scene, camera);
+        if (labelRenderer && scene && camera)
           labelRenderer.render(scene, camera);
-        else if (visualizationMode === '2D' && ctx2D && canvas2D) {
-          ctx2D.fillStyle = '#000000';
-          ctx2D.fillRect(0, 0, canvas2D.width, canvas2D.height);
-        }
       }
     }
     dA();
@@ -914,49 +942,38 @@ window.onload = async () => {
   const solBtn = document.querySelector('#solarsysButton'),
     jupBtn = document.querySelector('#jupiterchaoticButton'),
     chaBtn = document.querySelector('#trulychaoticButton'),
-    viewBtn = document.querySelector('#toggleViewButton'),
+    toggleBtn = document.querySelector('#toggleViewButton'),
     resBtn = document.querySelector('#resetButton');
 
-  if (solBtn) solBtn.onclick = () => init('solarsys');
-  if (jupBtn) jupBtn.onclick = () => init('jupiterchaotic');
-  if (chaBtn) chaBtn.onclick = () => init('trulychaotic');
-  if (viewBtn) {
-    viewBtn.onclick = toggleVisualizationMode;
-    viewBtn.textContent = `View in ${visualizationMode === '3D' ? '2D' : '3D'}`;
-  }
+  if (solBtn)
+    solBtn.onclick = () => startSimulation('/init_session', false, 'solarsys');
+  if (jupBtn)
+    jupBtn.onclick = () =>
+      startSimulation('/init_session', false, 'jupiterchaotic');
+  if (chaBtn)
+    chaBtn.onclick = () =>
+      startSimulation('/init_session', false, 'trulychaotic');
+  if (toggleBtn) toggleBtn.onclick = toggleVisualizationMode;
+
   if (resBtn) {
     resBtn.onclick = () => {
-      if (originalSimulationNameForReset) {
-        console.log(`Resetting to: ${originalSimulationNameForReset}`);
-        init(originalSimulationNameForReset);
-      } else if (
-        currentSimConfigData &&
-        currentSimConfigData.system_config &&
-        currentSimConfigData.system_config.name &&
-        currentSimConfigData.system_config.name.startsWith('Loaded:')
+      if (
+        originalSimulationNameForReset &&
+        originalSimulationNameForReset.startsWith('Loaded:')
       ) {
-        const sN = currentSimConfigData.system_config.name.replace(
-          'Loaded: ',
-          '',
-        );
+        const scenarioName = originalSimulationNameForReset
+          .replace('Loaded: ', '')
+          .trim();
         alert(
-          `To fully reset loaded scenario '${sN}', please load it again from the Scenario Builder or list. This action only clears the current visual state.`,
+          `To reload '${scenarioName}', please click its button in the 'Saved Scenarios' list.`,
         );
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        isPlayingGlobal = false;
-        planetObjects.forEach(p => {
-          if (p.body) scene.remove(p.body); /* more disposal */
-        });
-        planetObjects = [];
-        document.getElementById('years').innerHTML = '0.000 years';
-        document.getElementById('positionTableBody').innerHTML = '';
-        originalSimulationNameForReset = '';
-        document.getElementById('simName').textContent = 'Select a simulation';
+      } else if (originalSimulationNameForReset) {
+        startSimulation('/init_session', false, originalSimulationNameForReset);
       } else {
-        alert(
-          'No simulation active or original type unknown. Please select a simulation to run/reset.',
-        );
+        alert('No simulation active to reset. Please select a simulation.');
       }
     };
   }
+
+  populateSavedScenarios();
 };

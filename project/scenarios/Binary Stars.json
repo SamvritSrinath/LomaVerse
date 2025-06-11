@@ -1,0 +1,21 @@
+{
+  "name": "Binary Stars",
+  "planets": [
+    {
+      "name": "Star A",
+      "pos": {"x": -1, "y": 0, "z": 0},
+      "vel": {"x": 0, "y": 2.2, "z": 0},
+      "mass": 1.0,
+      "color": "#FFD700",
+      "radius": 0.1
+    },
+    {
+      "name": "Star B",
+      "pos": {"x": 1, "y": 0, "z": 0},
+      "vel": {"x": 0, "y": -2.2, "z": 0},
+      "mass": 1.0,
+      "color": "#FFA500",
+      "radius": 0.1
+    }
+  ]
+}

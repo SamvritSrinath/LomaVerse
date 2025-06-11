@@ -8,6 +8,23 @@
       rel="stylesheet"
       href="{{ url_for('static', filename='css/styles.css') }}"
     />
+    <style>
+      .saved-scenarios-container {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--secondary);
+      }
+      .saved-scenarios-container h3 {
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+      }
+      .scenario-button {
+        display: block;
+        width: 100%;
+        margin-bottom: 0.5rem;
+        text-align: left;
+      }
+    </style>
     <script type="importmap">
       {
         "imports": {
@@ -46,17 +63,31 @@
 
         <div class="controls">
           <button id="toggleViewButton" class="button secondary">
-            Toggle 2D/3D
+            View in 2D
           </button>
         </div>
 
+        <div class="saved-scenarios-container">
+          <h3>Saved Scenarios</h3>
+          <div id="savedScenariosList">
+            <p>Loading...</p>
+          </div>
+        </div>
+
         <form id="planetForm" class="planet-form">
-          <p style="font-size: 0.8em; color: var(--text-secondary)">
-            Mass in M☉, Position in AU. Velocity in selected unit (converted to
-            AU/year).
+          <p
+            style="
+              font-size: 0.8em;
+              color: var(--text-secondary);
+              border-top: 1px solid var(--secondary);
+              padding-top: 1rem;
+              margin-top: 1rem;
+            "
+          >
+            Add a body to the current simulation (conceptual).
           </p>
           <div class="form-group">
-            <label class="label">Name</label>
+            <label class="label">Celestial Body Name</label>
             <input type="text" id="planetName" class="input" required />
           </div>
 
@@ -92,6 +123,14 @@
           </div>
 
           <div class="form-group">
+            <label class="label" style="margin-top: 0.5rem"
+              >Velocity Unit:</label
+            >
+            <select id="velocityUnit" class="input">
+              <option value="au_year" selected>AU/year</option>
+              <option value="km_s">km/s</option>
+              <option value="au_day">AU/day</option>
+            </select>
             <label class="label">Velocity Components (vx, vy, vz)</label>
             <div class="input-group">
               <input
@@ -122,14 +161,6 @@
                 placeholder="vz"
               />
             </div>
-            <label class="label" style="margin-top: 0.5rem"
-              >Velocity Unit:</label
-            >
-            <select id="velocityUnit" class="input">
-              <option value="au_year" selected>AU/year</option>
-              <option value="km_s">km/s</option>
-              <option value="au_day">AU/day</option>
-            </select>
           </div>
 
           <div class="form-group">
@@ -149,10 +180,7 @@
             <input type="color" id="color" class="input" value="#ffffff" />
           </div>
 
-          <button type="submit" class="button">Add Planet (Conceptual)</button>
-          <p style="font-size: 0.7em; color: var(--text-secondary)">
-            Use Scenario Builder to save custom systems.
-          </p>
+          <button type="submit" class="button">Add Planet</button>
         </form>
 
         <div class="planet-list" id="planetList"></div>

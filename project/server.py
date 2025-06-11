@@ -1,6 +1,7 @@
 from flask import Flask, render_template, jsonify, request
 import uuid
-from planetary_motion import setup_jupiter_system_scenario, setup_true_chaotic_scenario, setup_solar_system_scenario, get_simulation_runner, LOMA_CODE_2D_FILENAME, LOMA_CODE_3D_FILENAME
+from planetary_motion import setup_jupiter_system_scenario, setup_true_chaotic_scenario, setup_solar_system_scenario, get_simulation_runner, LOMA_CODE_3D_FILENAME
+from config import BodyState, SolarSystemConfig
 import random
 import os
 import json
@@ -11,8 +12,14 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 app.logger.setLevel(logging.INFO)
 
+# Base directory of the script
+script_dir = os.path.dirname(os.path.realpath(__file__))
+
 current_session = None
 sessions = {}
+
+# Physical Constants
+KG_PER_SOLAR_MASS = 1.98847e30
 
 @app.route("/")
 def index(): return render_template("index.html")
@@ -65,7 +72,7 @@ def get_state(session_id):
             app.logger.error(f"get_state: Invalid simulation runner for session ID: {session_id}")
             return jsonify({"error": "Invalid simulation runner"}), 500
             
-        new_states = sim_runner(256)
+        new_states = sim_runner(30)
         
         for frame_idx, frame_data in enumerate(new_states):
             if not isinstance(frame_data, list):
@@ -97,22 +104,24 @@ def save_scenario():
     data = request.get_json()
     if not data or 'name' not in data or 'planets' not in data:
         return jsonify({'error': 'Missing fields'}), 400
+        
     for p in data['planets']:
-        if 'mass' not in p or float(p['mass']) <= 0:
+        if 'mass' not in p or not isinstance(p['mass'], (int, float)) or float(p['mass']) <= 0:
             return jsonify({'error': f"Invalid mass for planet {p.get('name')}"}), 400
+        p['mass'] = float(p['mass']) / KG_PER_SOLAR_MASS
             
-    scenario_dir = 'scenarios'
+    scenario_dir = os.path.join(script_dir, 'scenarios')
     if not os.path.exists(scenario_dir): os.makedirs(scenario_dir)
     sane_name = "".join(c for c in data['name'] if c.isalnum() or c in (' ', '_', '-')).strip()
     if not sane_name: return jsonify({'error': 'Invalid scenario name'}), 400
     scenario_file = os.path.join(scenario_dir, f"{sane_name}.json")
     with open(scenario_file, 'w') as f: json.dump(data, f, indent=2)
-    app.logger.info(f"Scenario '{sane_name}' saved with mass in Solar Masses.")
+    app.logger.info(f"Scenario '{sane_name}' saved with mass converted to Solar Masses.")
     return jsonify({'message': 'Scenario saved successfully'}), 200
 
 @app.route('/list_scenarios')
 def list_scenarios():
-    scenario_dir = 'scenarios'
+    scenario_dir = os.path.join(script_dir, 'scenarios')
     scenarios = []
     if os.path.exists(scenario_dir):
         for fn in os.listdir(scenario_dir):
@@ -123,23 +132,37 @@ def list_scenarios():
                         if 'name' in data and 'planets' in data:
                             scenarios.append({
                                 'name': data['name'],
+                                'filename': os.path.splitext(fn)[0],
                                 'planet_count': len(data['planets'])
                             })
                 except Exception as e:
                     app.logger.error(f"Err processing {fn}: {e}")
     return jsonify(scenarios)
 
-@app.route('/load_scenario/<name>')
-def load_scenario(name):
+@app.route('/load_scenario/<filename>')
+def load_scenario(filename):
     global current_session
-    sane_name = "".join(c for c in name if c.isalnum() or c in (' ', '_', '-')).strip()
+    sane_name = "".join(c for c in filename if c.isalnum() or c in (' ', '_', '-')).strip()
     if not sane_name: return jsonify({'error': 'Invalid scenario name'}), 400
-    scenario_file = os.path.join('scenarios', f"{sane_name}.json")
+    
+    scenario_file = os.path.join(script_dir, 'scenarios', f"{sane_name}.json")
     if not os.path.exists(scenario_file): return jsonify({'error': 'Scenario not found'}), 404
 
     try:
         with open(scenario_file, 'r') as f: scenario_data = json.load(f)
-        initial_bodies = [BodyState(**p) for p in scenario_data.get('planets', [])]
+        
+        initial_bodies = []
+        for p in scenario_data.get('planets', []):
+            pos_tuple = (p['pos']['x'], p['pos']['y'], p['pos']['z'])
+            vel_tuple = (p['vel']['x'], p['vel']['y'], p['vel']['z'])
+            initial_bodies.append(BodyState(
+                name=p.get('name'),
+                mass=p.get('mass'),
+                pos=pos_tuple,
+                vel=vel_tuple,
+                color=p.get('color'),
+                radius=p.get('radius')
+            ))
         
         loaded_cfg_dict = {
             'name': f"Loaded: {scenario_data.get('name', 'Unnamed')}",
@@ -149,8 +172,9 @@ def load_scenario(name):
             'fps': scenario_data.get('fps', 60),
             'sim_steps_per_frame': scenario_data.get('sim_steps_per_frame', 512),
             'initial_bodies_data': initial_bodies,
-            'dimensions': scenario_data.get('dimensions', 3),
-            'loma_code_file': LOMA_CODE_3D_FILENAME if scenario_data.get('dimensions', 3) == 3 else LOMA_CODE_2D_FILENAME,
+            'dimensions': 3,
+            'loma_code_file': LOMA_CODE_3D_FILENAME,
+            'integrator': scenario_data.get('integrator', 'rk4') # Default loaded scenarios to rk4
         }
         loaded_cfg = SolarSystemConfig(**loaded_cfg_dict)
         
@@ -162,10 +186,10 @@ def load_scenario(name):
         sessions[new_id] = sim_runner
         current_session = sim_runner
         app.logger.info(f"Loaded scenario '{sane_name}' into session {new_id}.")
-        return jsonify({'session_id': new_id, 'system_config': loaded_cfg_dict})
+        return jsonify({'session_id': new_id, 'system_config': loaded_cfg})
     except Exception as e:
-        app.logger.exception(f"Error loading scenario {name}")
+        app.logger.exception(f"Error loading scenario {filename}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=5555)

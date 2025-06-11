@@ -5,7 +5,6 @@ import {
   CSS2DObject,
 } from 'three/addons/renderers/CSS2DRenderer.js';
 
-// Velocity Unit Conversion Constants (scoped to this module if not globally needed)
 const AU_PER_KM_JS_SCENARIO = 1 / 1.495978707e8;
 const YEARS_PER_SECOND_JS_SCENARIO = 1 / 3.15576e7;
 const AU_YEAR_PER_KM_S_JS_SCENARIO =
@@ -13,29 +12,23 @@ const AU_YEAR_PER_KM_S_JS_SCENARIO =
 const AU_YEAR_PER_AU_DAY_JS_SCENARIO = 365.25;
 
 let scene, camera, renderer, labelRenderer, controls;
-let planets = []; // Local array for planets in the scenario being built
+let planets = [];
 
-// Helper function to convert input velocity to AU/year for scenario builder
 function convertVelocityToAuYearScenario(vx, vy, vz, unit) {
-  if (isNaN(vx) || isNaN(vy) || isNaN(vz)) {
-    return {x: 0, y: 0, z: 0};
-  }
-  if (unit === 'au_year') {
-    return {x: vx, y: vy, z: vz};
-  } else if (unit === 'km_s') {
+  if (isNaN(vx) || isNaN(vy) || isNaN(vz)) return {x: 0, y: 0, z: 0};
+  if (unit === 'au_year') return {x: vx, y: vy, z: vz};
+  if (unit === 'km_s')
     return {
       x: vx * AU_YEAR_PER_KM_S_JS_SCENARIO,
       y: vy * AU_YEAR_PER_KM_S_JS_SCENARIO,
       z: vz * AU_YEAR_PER_KM_S_JS_SCENARIO,
     };
-  } else if (unit === 'au_day') {
+  if (unit === 'au_day')
     return {
       x: vx * AU_YEAR_PER_AU_DAY_JS_SCENARIO,
       y: vy * AU_YEAR_PER_AU_DAY_JS_SCENARIO,
       z: vz * AU_YEAR_PER_AU_DAY_JS_SCENARIO,
     };
-  }
-  console.warn('Unknown velocity unit for scenario conversion:', unit);
   return {x: vx, y: vy, z: vz};
 }
 
@@ -43,7 +36,6 @@ const initThreeJS = () => {
   scene = new THREE.Scene();
   const canvasParent = document.getElementById('canvasparent');
   const parentRect = canvasParent.getBoundingClientRect();
-
   camera = new THREE.PerspectiveCamera(
     75,
     parentRect.width / parentRect.height,
@@ -51,22 +43,18 @@ const initThreeJS = () => {
     1000,
   );
   camera.position.set(0, 5, 10);
-
   renderer = new THREE.WebGLRenderer({antialias: true});
   renderer.setSize(parentRect.width, parentRect.height);
   canvasParent.appendChild(renderer.domElement);
-
   labelRenderer = new CSS2DRenderer();
   labelRenderer.setSize(parentRect.width, parentRect.height);
   labelRenderer.domElement.style.position = 'absolute';
   labelRenderer.domElement.style.top = '0px';
   labelRenderer.domElement.style.pointerEvents = 'none';
   canvasParent.appendChild(labelRenderer.domElement);
-
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.target.set(0, 0, 0);
-
   const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
   scene.add(ambientLight);
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -74,7 +62,6 @@ const initThreeJS = () => {
   scene.add(directionalLight);
   const gridHelper = new THREE.GridHelper(20, 20);
   scene.add(gridHelper);
-
   window.addEventListener('resize', () => {
     const newRect = canvasParent.getBoundingClientRect();
     camera.aspect = newRect.width / newRect.height;
@@ -85,7 +72,7 @@ const initThreeJS = () => {
 };
 
 const createPlanetMesh = planet => {
-  const radius = 0.2;
+  const radius = planet.radius || 0.2;
   const geometry = new THREE.SphereGeometry(radius, 16, 16);
   const material = new THREE.MeshStandardMaterial({
     color:
@@ -97,8 +84,7 @@ const createPlanetMesh = planet => {
     metalness: 0.1,
   });
   const mesh = new THREE.Mesh(geometry, material);
-  mesh.position.set(planet.position.x, planet.position.y, planet.position.z);
-
+  mesh.position.set(planet.pos.x, planet.pos.y, planet.pos.z);
   const labelDiv = document.createElement('div');
   labelDiv.className = 'planet-label-builder';
   labelDiv.textContent = planet.name;
@@ -116,7 +102,6 @@ const createPlanetMesh = planet => {
 const updatePlanetList = () => {
   const planetListEl = document.getElementById('planetList');
   planetListEl.innerHTML = '';
-
   planets.forEach((planet, index) => {
     const planetItem = document.createElement('div');
     planetItem.className = 'planet-item';
@@ -168,7 +153,6 @@ const animate = () => {
 const planetForm = document.getElementById('planetForm');
 planetForm.addEventListener('submit', e => {
   e.preventDefault();
-
   const rawVelX = parseFloat(document.getElementById('velX').value) || 0;
   const rawVelY = parseFloat(document.getElementById('velY').value) || 0;
   const rawVelZ = parseFloat(document.getElementById('velZ').value) || 0;
@@ -179,36 +163,43 @@ planetForm.addEventListener('submit', e => {
     rawVelZ,
     selectedUnit,
   );
+  const massKg = parseFloat(document.getElementById('mass').value);
+
+  // Defensive check for the radius element to prevent crash
+  const radiusEl = document.getElementById('radius');
+  const radius = radiusEl ? parseFloat(radiusEl.value) || null : null;
+
+  if (!document.getElementById('planetName').value.trim()) {
+    alert('Please enter a planet name.');
+    return;
+  }
+  if (isNaN(massKg) || massKg <= 0) {
+    alert('Please enter a valid, positive mass (in kg).');
+    return;
+  }
 
   const newPlanet = {
     name: document.getElementById('planetName').value.trim(),
-    position: {
+    pos: {
       x: parseFloat(document.getElementById('posX').value) || 0,
       y: parseFloat(document.getElementById('posY').value) || 0,
       z: parseFloat(document.getElementById('posZ').value) || 0,
     },
-    velocity: convertedVelocity, // Already in AU/year
-    mass: parseFloat(document.getElementById('mass').value),
+    vel: convertedVelocity,
+    mass: massKg,
     color:
       document.getElementById('color').value ||
       `#${Math.floor(Math.random() * 16777215)
         .toString(16)
         .padStart(6, '0')}`,
+    radius: radius,
   };
 
-  if (!newPlanet.name) {
-    alert('Please enter a planet name.');
-    return;
-  }
-  if (isNaN(newPlanet.mass)) {
-    alert('Please enter a valid mass (in kg).');
-    return;
-  }
-  if (Object.values(newPlanet.position).some(isNaN)) {
+  if (Object.values(newPlanet.pos).some(isNaN)) {
     alert('Position components must be valid numbers.');
     return;
   }
-  if (Object.values(newPlanet.velocity).some(isNaN)) {
+  if (Object.values(newPlanet.vel).some(isNaN)) {
     alert('Velocity components resulted in NaN. Check inputs.');
     return;
   }
@@ -216,7 +207,6 @@ planetForm.addEventListener('submit', e => {
   const mesh = createPlanetMesh(newPlanet);
   scene.add(mesh);
   newPlanet.mesh = mesh;
-
   planets.push(newPlanet);
   updatePlanetList();
   planetForm.reset();
@@ -226,6 +216,7 @@ planetForm.addEventListener('submit', e => {
   document.getElementById('velZ').value = '0';
   document.getElementById('velocityUnitScenario').value = 'au_year';
   document.getElementById('color').value = '';
+  if (radiusEl) radiusEl.value = '';
 });
 
 document.getElementById('saveScenario').addEventListener('click', async () => {
@@ -238,15 +229,14 @@ document.getElementById('saveScenario').addEventListener('click', async () => {
     alert('Please add at least one planet.');
     return;
   }
-
   const planetsToSave = planets.map(p => ({
     name: p.name,
-    position: p.position, // AU
-    velocity: p.velocity, // AU/year (already converted)
-    mass: p.mass, // kg
+    pos: p.pos,
+    vel: p.vel,
+    mass: p.mass,
     color: p.color,
+    radius: p.radius,
   }));
-
   try {
     const response = await fetch('/save_scenario', {
       method: 'POST',
