@@ -12,6 +12,9 @@ app = Flask(__name__)
 logging.basicConfig(level=logging.INFO)
 app.logger.setLevel(logging.INFO)
 
+# Base directory of the script
+script_dir = os.path.dirname(os.path.realpath(__file__))
+
 current_session = None
 sessions = {}
 
@@ -107,7 +110,7 @@ def save_scenario():
             return jsonify({'error': f"Invalid mass for planet {p.get('name')}"}), 400
         p['mass'] = float(p['mass']) / KG_PER_SOLAR_MASS
             
-    scenario_dir = 'scenarios'
+    scenario_dir = os.path.join(script_dir, 'scenarios')
     if not os.path.exists(scenario_dir): os.makedirs(scenario_dir)
     sane_name = "".join(c for c in data['name'] if c.isalnum() or c in (' ', '_', '-')).strip()
     if not sane_name: return jsonify({'error': 'Invalid scenario name'}), 400
@@ -118,7 +121,7 @@ def save_scenario():
 
 @app.route('/list_scenarios')
 def list_scenarios():
-    scenario_dir = 'scenarios'
+    scenario_dir = os.path.join(script_dir, 'scenarios')
     scenarios = []
     if os.path.exists(scenario_dir):
         for fn in os.listdir(scenario_dir):
@@ -141,7 +144,8 @@ def load_scenario(filename):
     global current_session
     sane_name = "".join(c for c in filename if c.isalnum() or c in (' ', '_', '-')).strip()
     if not sane_name: return jsonify({'error': 'Invalid scenario name'}), 400
-    scenario_file = os.path.join('scenarios', f"{sane_name}.json")
+    
+    scenario_file = os.path.join(script_dir, 'scenarios', f"{sane_name}.json")
     if not os.path.exists(scenario_file): return jsonify({'error': 'Scenario not found'}), 404
 
     try:
@@ -170,6 +174,7 @@ def load_scenario(filename):
             'initial_bodies_data': initial_bodies,
             'dimensions': 3,
             'loma_code_file': LOMA_CODE_3D_FILENAME,
+            'integrator': scenario_data.get('integrator', 'rk4') # Default loaded scenarios to rk4
         }
         loaded_cfg = SolarSystemConfig(**loaded_cfg_dict)
         

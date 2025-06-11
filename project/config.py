@@ -1,10 +1,6 @@
 # config.py
 from dataclasses import dataclass
-from typing import Dict, Union, List
-
-# config.py
-from dataclasses import dataclass
-from typing import Dict, Union, List, Optional
+from typing import Dict, Union, List, Optional, Literal
 
 @dataclass
 class BodyState:
@@ -22,7 +18,8 @@ class SolarSystemConfig:
     epsilon: float # Softening factor
     years_per_frame: float # Simulation time (years) per display frame
     fps: int # Target FPS for visualization
-    sim_steps_per_frame: int # Simulation steps per frame (dt_loma = years_per_frame / sim_steps_per_frame)
+    sim_steps_per_frame: int # Simulation steps per display frame (dt_loma = years_per_frame / sim_steps_per_frame)
     initial_bodies_data: List[BodyState]
     loma_code_file: str = "planetary_motion_3d_loma.py" 
     dimensions: int = 3
+    integrator: Literal['symplectic_euler', 'rk4'] = 'symplectic_euler'

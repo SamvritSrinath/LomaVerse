@@ -37,7 +37,6 @@ MASS_MOON_A_SOLAR = 5e-8
 
 def setup_solar_system_scenario() -> SolarSystemConfig:
     fps = 120 
-    # Velocities are in AU/year
     planets = [ 
         BodyState(name="Mercury", mass=MASS_MERCURY_SOLAR,  pos=(-0.30078, 0.27911, -0.03169), vel=(-0.01756*365.25, -0.02108*365.25, 0.00089*365.25)),
         BodyState(name="Venus",   mass=MASS_VENUS_SOLAR,     pos=(-0.17612, -0.70403, 0.03379), vel=(0.01994*365.25, -0.00512*365.25, -0.00112*365.25)),
@@ -48,28 +47,16 @@ def setup_solar_system_scenario() -> SolarSystemConfig:
         BodyState(name="Uranus",  mass=MASS_URANUS_SOLAR,   pos=(19.7987, 2.51304, -0.23738), vel=(-0.00052*365.25, 0.00367*365.25, 0.00003*365.25)),
         BodyState(name="Neptune", mass=MASS_NEPTUNE_SOLAR, pos=(29.6178, -5.11366, -0.68800), vel=(0.00053*365.25, 0.00303*365.25, -0.00008*365.25)),
     ]
-    
-    # Center-of-mass correction for stability
     total_momentum = np.array([0.0, 0.0, 0.0])
-    for p in planets:
-        total_momentum += p.mass * np.array(p.vel)
-    
-    sun_velocity = (-total_momentum / MASS_SUN_SOLAR).tolist()
-    sun = BodyState(name="Sun", mass=MASS_SUN_SOLAR, pos=(0.0, 0.0, 0.0), vel=tuple(sun_velocity))
-    
+    for p in planets: total_momentum += p.mass * np.array(p.vel)
+    sun_velocity = tuple((-total_momentum / MASS_SUN_SOLAR).tolist())
+    sun = BodyState(name="Sun", mass=MASS_SUN_SOLAR, pos=(0.0, 0.0, 0.0), vel=sun_velocity)
     initial_bodies = [sun] + planets
-    logging.info(f"Setting up Solar System. Corrected Sun velocity to {sun_velocity} AU/year for stability.")
-
+    logging.info(f"Setting up Solar System with integrator: symplectic_euler")
     system_config = SolarSystemConfig(
-        name="Solar System (3D, Solar Masses)",
-        current_n_bodies=len(initial_bodies),
-        epsilon=0.005, 
-        years_per_frame=0.01, 
-        fps=fps,
-        sim_steps_per_frame=1024, # Reduced for performance
-        initial_bodies_data=initial_bodies,
-        dimensions=3, 
-        loma_code_file=LOMA_CODE_3D_FILENAME,
+        name="Solar System (3D, Solar Masses)", current_n_bodies=len(initial_bodies),
+        epsilon=0.005, years_per_frame=0.01, fps=fps, sim_steps_per_frame=1024,
+        initial_bodies_data=initial_bodies, dimensions=3, loma_code_file=LOMA_CODE_3D_FILENAME, integrator='symplectic_euler'
     )
     return system_config
 
@@ -95,11 +82,11 @@ def setup_jupiter_system_scenario() -> SolarSystemConfig:
             vy_init =  pos_x / current_r_xy * v_mag_desired
             vz_init = (np.random.rand() - 0.5) * 0.05 * v_mag_desired
         initial_bodies.append(BodyState(name=moon_def['name'], mass=moon_def['mass_solar'], pos=moon_def['pos_au'], vel=(vx_init, vy_init, vz_init)))
-    logging.info(f"Setting up Jupiter System. Jupiter mass: {initial_bodies[0].mass:.2e} M☉. Bodies: {len(initial_bodies)}")
+    logging.info(f"Setting up Jupiter System with integrator: rk4")
     system_config = SolarSystemConfig(
         name="Jupiter System (Solar Masses)", current_n_bodies=len(initial_bodies),
         epsilon=0.00005, years_per_frame=0.0005, fps=fps, sim_steps_per_frame=256,
-        initial_bodies_data=initial_bodies, dimensions=3, loma_code_file=LOMA_CODE_3D_FILENAME,
+        initial_bodies_data=initial_bodies, dimensions=3, loma_code_file=LOMA_CODE_3D_FILENAME, integrator='rk4'
     )
     return system_config
 
@@ -111,12 +98,11 @@ def setup_true_chaotic_scenario() -> SolarSystemConfig:
         BodyState(name="StarB", mass=1.0, pos=(-0.7, -0.4, -0.02), vel=(-0.08, -0.15, 0.04)),
         BodyState(name="StarC", mass=0.9, pos=(0.2, -0.8, 0.1), vel=(0.18, 0.05, 0.08))
     ]
-    n_bodies = len(initial_bodies)
-    logging.info(f"Setting up True Chaotic Scenario with {n_bodies} bodies.")
+    logging.info(f"Setting up True Chaotic Scenario with integrator: rk4")
     system_config = SolarSystemConfig(
-        name=f"True Chaotic System ({n_bodies}-Body)", current_n_bodies=n_bodies,
+        name=f"True Chaotic System ({len(initial_bodies)}-Body)", current_n_bodies=len(initial_bodies),
         epsilon=0.02, years_per_frame=0.0015, fps=fps, sim_steps_per_frame=768,
-        initial_bodies_data=initial_bodies, dimensions=3, loma_code_file=LOMA_CODE_3D_FILENAME,
+        initial_bodies_data=initial_bodies, dimensions=3, loma_code_file=LOMA_CODE_3D_FILENAME, integrator='rk4'
     )
     return system_config
 
@@ -130,7 +116,7 @@ def compile_loma_code(loma_fp: str, output_lib_prefix: str):
     with open(loma_source_full_path, 'r') as f: loma_code_str = f.read()
     try:
         structs, lib = compiler.compile(loma_code_str,target='c',output_filename=compiled_lib_path_prefix)
-        logging.info(f"Compiled: {loma_fp} to {compiled_lib_path_prefix}"); return structs,lib
+        logging.info(f"Successfully compiled Loma code: {loma_fp} to {compiled_lib_path_prefix}"); return structs,lib
     except Exception as e: logging.error(f"Compile error {loma_fp}: {e}",exc_info=True); return None,None
 
 def get_simulation_runner(cfg: SolarSystemConfig):    
@@ -141,6 +127,17 @@ def get_simulation_runner(cfg: SolarSystemConfig):
     BodyStateLoma, SimConfigLoma = structs['BodyState'], structs['SimConfig']
     BodyStateArray = BodyStateLoma * MAX_N_BODIES_CONST 
     current_body_states, next_body_states_buffer = BodyStateArray(), BodyStateArray()
+
+    # Allocate scratch space for RK4 if needed
+    k1_buffer, k2_buffer, k3_buffer, k4_buffer, intermediate_states_buffer_rk4 = (None,)*5
+    if cfg.integrator == 'rk4':
+        BodyDerivative = structs['BodyDerivative']
+        BodyDerivativeArray = BodyDerivative * MAX_N_BODIES_CONST
+        k1_buffer = BodyDerivativeArray()
+        k2_buffer = BodyDerivativeArray()
+        k3_buffer = BodyDerivativeArray()
+        k4_buffer = BodyDerivativeArray()
+        intermediate_states_buffer_rk4 = BodyStateArray()
 
     for i in range(cfg.current_n_bodies):
         p_data = cfg.initial_bodies_data[i] 
@@ -156,16 +153,13 @@ def get_simulation_runner(cfg: SolarSystemConfig):
                                         epsilon_sq=cfg.epsilon**2, num_bodies=cfg.current_n_bodies)
         res_list = []
         for _ in range(frames_to_generate_per_call):
-            for k_idx in range(cfg.current_n_bodies):
-                cb_s=current_body_states[k_idx]; n="Unk"; hz_p=hasattr(cb_s.pos,'z'); hz_m=hasattr(cb_s.mom,'z')
-                if k_idx < len(cfg.initial_bodies_data): n=cfg.initial_bodies_data[k_idx].name
-                nan_p = math.isnan(cb_s.pos.x) or math.isnan(cb_s.pos.y) or (cfg.dimensions==3 and hz_p and math.isnan(cb_s.pos.z))
-                nan_m = math.isnan(cb_s.mom.x) or math.isnan(cb_s.mom.y) or (cfg.dimensions==3 and hz_m and math.isnan(cb_s.mom.z))
-                if nan_p or nan_m: logging.error(f"NaN in CTYPES {k_idx}({n}) P:({cb_s.pos.x:.2e},{cb_s.pos.y:.2e},{getattr(cb_s.pos,'z','N/A'):.2e}) M:({cb_s.mom.x:.2e},{cb_s.mom.y:.2e},{getattr(cb_s.mom,'z','N/A'):.2e})")
-            
             res_list.append(utils.convert_ctype_state_to_body_state(current_body_states, cfg))
             for _s in range(cfg.sim_steps_per_frame):
-                lib.time_step_system(current_body_states,sim_conf_loma,next_body_states_buffer)
-                ctypes.memmove(ctypes.addressof(current_body_states),ctypes.addressof(next_body_states_buffer),ctypes.sizeof(BodyStateArray))
+                if cfg.integrator == 'rk4':
+                    lib.time_step_system_rk4(current_body_states, sim_conf_loma, next_body_states_buffer,
+                                             k1_buffer, k2_buffer, k3_buffer, k4_buffer, intermediate_states_buffer_rk4)
+                else: # Default to Symplectic Euler
+                    lib.time_step_system(current_body_states, sim_conf_loma, next_body_states_buffer)
+                ctypes.memmove(ctypes.addressof(current_body_states), ctypes.addressof(next_body_states_buffer), ctypes.sizeof(BodyStateArray))
         return res_list
     return get_next_states_closure
