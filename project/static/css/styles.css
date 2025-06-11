@@ -1,0 +1,251 @@
+/* Base styles */
+:root {
+  --primary: #3b82f6;
+  --primary-dark: #2563eb;
+  --secondary: #64748b;
+  --background: #0f172a;
+  --surface: #1e293b;
+  --text: #f8fafc;
+  --text-secondary: #94a3b8;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  padding: 0;
+}
+
+/* Layout */
+.container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 350px; /* INCREASED WIDTH */
+  background-color: var(--surface);
+  padding: 1.5rem;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex; /* Added for flex column layout */
+  flex-direction: column; /* Added */
+}
+
+.main-content {
+  flex: 1;
+  padding: 1.5rem;
+  display: flex; /* Added for flex column layout */
+  flex-direction: column; /* Added */
+}
+
+/* Controls - general styling for button groups */
+.controls {
+  display: flex;
+  flex-wrap: wrap; /* Allow buttons to wrap */
+  gap: 0.75rem; /* Adjusted gap */
+  margin-bottom: 1.5rem;
+}
+
+.button {
+  background-color: var(--primary);
+  color: white;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+  text-decoration: none; /* For <a> styled as buttons */
+  display: inline-block; /* For <a> styled as buttons */
+  text-align: center;
+}
+
+.button:hover {
+  background-color: var(--primary-dark);
+}
+
+.button.secondary {
+  background-color: var(--secondary);
+}
+.button.secondary:hover {
+  background-color: #475569; /* Darker secondary hover */
+}
+
+/* Form */
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+}
+
+.input-group {
+  /* For multiple inputs in a row, e.g., x,y,z */
+  display: flex;
+  gap: 0.5rem;
+}
+.input-group .input {
+  flex: 1; /* Allow inputs to share space */
+}
+
+.input {
+  width: 100%;
+  padding: 0.5rem;
+  background-color: var(--background);
+  border: 1px solid var(--secondary);
+  border-radius: 0.375rem;
+  color: var(--text);
+  box-sizing: border-box; /* Ensure padding doesn't add to width */
+}
+select.input {
+  /* Specific styling for select if needed */
+  padding: 0.45rem 0.5rem; /* Adjust padding for select arrow */
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+/* Planet list & Position Table */
+.planet-list {
+  /* For current bodies in sim */
+  margin-top: 1rem;
+  margin-bottom: 1rem; /* Space before position table */
+  /* max-height: 150px; /* Example max height */
+  /* overflow-y: auto; */
+}
+
+.planet-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem; /* Increased gap */
+  padding: 0.5rem;
+  background-color: var(
+    --background
+  ); /* Slightly different from sidebar surface */
+  border-radius: 0.375rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.8em;
+}
+
+.planet-color {
+  width: 0.8rem; /* Slightly smaller */
+  height: 0.8rem;
+  border-radius: 50%;
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+.position-table-container {
+  margin-top: 1rem;
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid var(--secondary);
+  border-radius: 0.375rem;
+  background-color: var(--background); /* Match input bg for table area */
+}
+.position-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75em;
+}
+.position-table th,
+.position-table td {
+  text-align: left;
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--surface); /* Use surface for internal borders */
+}
+.position-table th {
+  background-color: var(--surface);
+  color: var(--text-secondary);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+.position-table tr:last-child td {
+  border-bottom: none;
+}
+.position-table tr:hover td {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Canvas container */
+#canvasparent {
+  position: relative;
+  width: 100%;
+  /* height: calc(100vh - 4rem - 3rem); NEW: Adjust height based on status bar and controls below */
+  flex-grow: 1; /* Let canvas parent take available space */
+  background-color: var(--background);
+  border-radius: 0.5rem;
+  overflow: hidden;
+  min-height: 300px; /* Ensure it has some minimum height */
+}
+
+/* Status bar & Central Controls */
+.status-bar-container {
+  /* NEW WRAPPER for status bar and central controls */
+  padding: 0.5rem 0rem; /* Remove side padding, use status-bar's padding */
+  background-color: var(--surface);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 1rem; /* Space above status bar container */
+}
+
+.status-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.3rem 1rem; /* Reduced padding */
+  /* background-color: var(--surface); MOVED to container */
+  /* border-top: 1px solid rgba(255, 255, 255, 0.1); MOVED to container */
+}
+.status-item {
+  margin-left: 1rem;
+  font-size: 0.85em;
+  color: var(--text-secondary);
+}
+
+.central-controls {
+  /* NEW for centering sim controls */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 0.75rem;
+  padding-top: 0.5rem; /* Space above buttons */
+}
+.central-controls .button {
+  padding: 0.6rem 1.2rem; /* Slightly larger buttons */
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%; /* Full width on small screens */
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    max-height: 50vh; /* Limit sidebar height on mobile */
+    overflow-y: auto; /* Allow sidebar to scroll if content overflows */
+  }
+  .main-content {
+    padding: 1rem; /* Reduce padding on small screens */
+  }
+  .status-bar {
+    flex-direction: column; /* Stack status items */
+    align-items: flex-start;
+    gap: 0.3rem;
+  }
+  .status-item {
+    margin-left: 0;
+  }
+  .central-controls {
+    flex-wrap: wrap; /* Allow buttons to wrap */
+  }
+}

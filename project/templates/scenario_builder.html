@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LomaVerse - N-Body Simulation</title>
+    <title>LomaVerse - Scenario Builder</title>
     <link
       rel="stylesheet"
       href="{{ url_for('static', filename='css/styles.css') }}"
@@ -16,26 +16,31 @@
         }
       }
     </script>
-    <script src="{{ url_for('static', filename='js/linkedlist.js') }}"></script>
-    <script
-      src="{{ url_for('static', filename='js/script.js') }}"
-      type="module"
-    ></script>
+    <style>
+      .input-group-tight {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+      }
+      .input-group-tight .input {
+        flex-grow: 1;
+      }
+      .input-group-tight select {
+        padding: 0.5rem;
+        background-color: var(--background);
+        border: 1px solid var(--secondary);
+        color: var(--text);
+        border-radius: 0.375rem;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
       <div class="sidebar">
-        <h2>LomaVerse</h2>
+        <h2>Scenario Builder</h2>
 
         <div class="controls">
-          <button id="solarsysButton" class="button">Solar System</button>
-          <button id="jupiterchaoticButton" class="button">
-            Jupiter System
-          </button>
-          <button id="trulychaoticButton" class="button">True Chaotic</button>
-          <a href="/scenario-builder" class="button secondary"
-            >Scenario Builder</a
-          >
+          <a href="/" class="button secondary">Back to Simulation</a>
           <a
             href="/conversions"
             class="button secondary"
@@ -43,18 +48,17 @@
             >Unit Conversions</a
           >
         </div>
+        <p style="font-size: 0.8em; color: var(--text-secondary)">
+          Define planets with mass in kg, position in AU. Velocity components
+          will be converted to AU/year for simulation.
+        </p>
 
-        <div class="controls">
-          <button id="toggleViewButton" class="button secondary">
-            Toggle 2D/3D
-          </button>
+        <div class="form-group">
+          <label class="label">Scenario Name</label>
+          <input type="text" id="scenarioName" class="input" required />
         </div>
 
         <form id="planetForm" class="planet-form">
-          <p style="font-size: 0.8em; color: var(--text-secondary)">
-            Mass in M☉, Position in AU. Velocity in selected unit (converted to
-            AU/year).
-          </p>
           <div class="form-group">
             <label class="label">Name</label>
             <input type="text" id="planetName" class="input" required />
@@ -84,7 +88,6 @@
                 id="posZ"
                 class="input"
                 step="any"
-                required
                 value="0"
                 placeholder="AU"
               />
@@ -99,7 +102,6 @@
                 id="velX"
                 class="input"
                 step="any"
-                required
                 value="0"
                 placeholder="vx"
               />
@@ -108,7 +110,6 @@
                 id="velY"
                 class="input"
                 step="any"
-                required
                 value="0"
                 placeholder="vy"
               />
@@ -117,15 +118,15 @@
                 id="velZ"
                 class="input"
                 step="any"
-                required
                 value="0"
                 placeholder="vz"
               />
             </div>
             <label class="label" style="margin-top: 0.5rem"
-              >Velocity Unit:</label
+              >Velocity Unit (Optional, defaults to AU/year if components are
+              non-zero):</label
             >
-            <select id="velocityUnit" class="input">
+            <select id="velocityUnitScenario" class="input">
               <option value="au_year" selected>AU/year</option>
               <option value="km_s">km/s</option>
               <option value="au_day">AU/day</option>
@@ -133,70 +134,47 @@
           </div>
 
           <div class="form-group">
-            <label class="label">Mass (Solar Masses M☉)</label>
+            <label class="label">Mass (kg)</label>
             <input
               type="number"
               id="mass"
               class="input"
               step="any"
               required
-              placeholder="M☉"
+              placeholder="kg"
             />
           </div>
 
           <div class="form-group">
-            <label class="label">Color</label>
-            <input type="color" id="color" class="input" value="#ffffff" />
+            <label class="label">Color (Optional)</label>
+            <input type="color" id="color" class="input" />
           </div>
 
-          <button type="submit" class="button">Add Planet (Conceptual)</button>
-          <p style="font-size: 0.7em; color: var(--text-secondary)">
-            Use Scenario Builder to save custom systems.
-          </p>
+          <button type="submit" class="button">Add Planet to Scenario</button>
         </form>
 
         <div class="planet-list" id="planetList"></div>
 
-        <div class="form-group">
-          <label class="label" style="margin-top: 1rem; margin-bottom: 0.5rem"
-            >Live Positions (World Units)</label
-          >
-        </div>
-        <div class="position-table-container">
-          <table class="position-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>X (AU)</th>
-                <th>Y (AU)</th>
-                <th>Z (AU)</th>
-              </tr>
-            </thead>
-            <tbody id="positionTableBody"></tbody>
-          </table>
+        <div class="controls">
+          <button id="saveScenario" class="button">Save Scenario</button>
+          <button id="clearScenario" class="button secondary">
+            Clear All Planets
+          </button>
         </div>
       </div>
 
       <div class="main-content">
         <div id="canvasparent"></div>
-        <div class="status-bar-container">
-          <div class="status-bar">
-            <span id="simName">Select a simulation</span>
-            <span id="years">0.000 years</span>
-            <span id="cameraPosition" class="status-item"
-              >Cam: (X: 0.00, Y: 0.00, Z: 0.00)</span
-            >
-          </div>
-          <div class="central-controls">
-            <button id="playButton" class="button">Play</button>
-            <button id="pauseButton" class="button secondary">Pause</button>
-            <button id="resetButton" class="button secondary">Reset Sim</button>
-            <button id="cameraFollow" class="button secondary">
-              Follow Center
-            </button>
-          </div>
+        <div class="status-bar">
+          <span id="scenarioStatus">Define your scenario</span>
+          <span id="planetCount">0 planets</span>
         </div>
       </div>
     </div>
+
+    <script
+      type="module"
+      src="{{ url_for('static', filename='js/scenario_builder.js') }}"
+    ></script>
   </body>
 </html>

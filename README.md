@@ -12,13 +12,13 @@ Then, open up the debug server in a web browser.
 
 ## Work to be done
 
-- [ ] Using a JS based Frontend
+- [x] Using a JS based Frontend
   - [ ] Formatting User Input/Interface
   - [ ] Adding a Simulation Speed Control/Time step
-  - [ ] Pause/Resume Button
-  - [ ] Handling HTTP resp in chunks
+  - [x] Pause/Resume Button
+  - [x] Handling HTTP resp in chunks
   - [ ] User Canvas for Inputs?
-  - [ ] 3D Rendering Interface
+  - [x] 3D Rendering Interface
 - [ ] Creating a 3D based Physics Engine
 - [ ] Different approximation methods (4th ODE Range Kutta)
 - [ ] Timing/Improving export jobs

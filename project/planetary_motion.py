@@ -3,157 +3,169 @@ import math
 import os
 import sys
 import numpy as np
-current = os.path.dirname(os.path.realpath(__file__))
-parent = os.path.dirname(current)
-sys.path.append(parent)
-import compiler
+import logging 
+
+# Ensure 'compiler' can be found
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))) 
+import compiler 
 import ctypes
-from config import SolarSystemConfig, BodyState
-import utils
+from config import SolarSystemConfig, BodyState 
+import utils 
+from typing import TextIO
 
-# --- Global Constants ---
-LOMA_CODE_FILENAME = 'planetary_motion_loma.py' # Loma physics code file (the one above)
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(filename)s:%(lineno)d - %(message)s')
+
 LOMA_CODE_SUBDIR = 'loma_code'
-COMPILED_CODE_SUBDIR = '_code'
-COMPILED_LIB_NAME_PREFIX = 'n_planets_lib_dyn_v2' # Unique name for this library version
-MAX_N_BODIES_CONST = 20                    # Max bodies Loma code is compiled for --> static
+COMPILED_CODE_SUBDIR = '_code' 
+LOMA_CODE_2D_FILENAME = 'planetary_motion_loma.py' 
+LOMA_CODE_3D_FILENAME = 'planetary_motion_3d_loma.py'
+COMPILED_LIB_NAME_PREFIX_2D = 'n_planets_lib_2d_v2' 
+COMPILED_LIB_NAME_PREFIX_3D = 'n_planets_lib_3d_v2' 
+MAX_N_BODIES_CONST = 20                    
 
-G_val = (2.0 * math.pi)**2 # Gravitational constant (AU^3 / (SolarMass * Year^2))
+G_val = (2.0 * math.pi)**2 
+logging.info(f"Using G_val: {G_val:.4f} AU^3 M☉^-1 year^-2 (for Solar Masses, AU, Years)")
+
+MASS_SUN_SOLAR = 1.0
+MASS_MERCURY_SOLAR = 1.65e-7
+MASS_VENUS_SOLAR = 2.45e-6
+MASS_EARTH_SOLAR = 3.00e-6
+MASS_MARS_SOLAR = 3.23e-7
+MASS_JUPITER_SOLAR = 9.546e-4 
+MASS_SATURN_SOLAR = 2.86e-4
+MASS_URANUS_SOLAR = 4.37e-5
+MASS_NEPTUNE_SOLAR = 5.15e-5
+MASS_MOON_A_SOLAR = 5e-8 
 
 def setup_solar_system_scenario() -> SolarSystemConfig:
-    """Defines parameters for the standard Solar System simulation."""
     n_bodies = 9
-    fps = 120
-
-    initial_bodies = [
-        BodyState(name="Sun", mass=1.0, pos=(0, 0), vel=(0, 0)),
-        BodyState(name="Mercury", mass=1.65e-7, pos=(0.39, 0), vel=0.39),
-        BodyState(name="Venus", mass=2.45e-6, pos=(0.72, 0), vel=0.72),
-        BodyState(name="Earth", mass=3.00e-6, pos=(1.0, 0), vel=1.0),
-        BodyState(name="Mars", mass=3.23e-7, pos=(1.52, 0), vel=1.52),
-        BodyState(name="Jupiter", mass=9.55e-4, pos=(5.20, 0), vel=5.20),
-        BodyState(name="Saturn", mass=2.86e-4, pos=(9.58, 0), vel=9.58),
-        BodyState(name="Uranus", mass=4.37e-5, pos=(19.22, 0), vel=19.22),
-        BodyState(name="Neptune", mass=5.15e-5, pos=(30.05, 0), vel=30.05),
+    fps = 120 
+    initial_bodies = [ 
+        BodyState(name="Sun",     mass=MASS_SUN_SOLAR,       pos=(0.0, 0.0, 0.0), vel=(0.0, 0.0, 0.0)),
+        BodyState(name="Mercury", mass=MASS_MERCURY_SOLAR,  pos=(-0.30078, 0.27911, -0.03169), vel=(-0.01756*365.25, -0.02108*365.25, 0.00089*365.25)),
+        BodyState(name="Venus",   mass=MASS_VENUS_SOLAR,     pos=(-0.17612, -0.70403, 0.03379), vel=(0.01994*365.25, -0.00512*365.25, -0.00112*365.25)),
+        BodyState(name="Earth",   mass=MASS_EARTH_SOLAR,     pos=(-0.15643, -0.99205, 0.00004), vel=(0.01705*365.25, -0.00285*365.25, -0.0000007*365.25)), 
+        BodyState(name="Mars",    mass=MASS_MARS_SOLAR,      pos=(-1.30792, -0.83020, 0.03337), vel=(0.00919*365.25, -0.01177*365.25, -0.00048*365.25)),
+        BodyState(name="Jupiter", mass=MASS_JUPITER_SOLAR,  pos=(4.56986, 2.33903, -0.10340), vel=(-0.00280*365.25, 0.00562*365.25, 0.00007*365.25)),
+        BodyState(name="Saturn",  mass=MASS_SATURN_SOLAR,   pos=(8.62944, -4.61264, -0.28296), vel=(0.00243*365.25, 0.00447*365.25, -0.00009*365.25)),
+        BodyState(name="Uranus",  mass=MASS_URANUS_SOLAR,   pos=(19.7987, 2.51304, -0.23738), vel=(-0.00052*365.25, 0.00367*365.25, 0.00003*365.25)),
+        BodyState(name="Neptune", mass=MASS_NEPTUNE_SOLAR, pos=(29.6178, -5.11366, -0.68800), vel=(0.00053*365.25, 0.00303*365.25, -0.00008*365.25)),
     ]
+    logging.info(f"Setting up Solar System. Sun mass: {initial_bodies[0].mass:.2e} M☉. Sim steps/frame: 1536")
 
     system_config = SolarSystemConfig(
-        name="Solar System",
+        name="Solar System (3D, Solar Masses)",
         current_n_bodies=n_bodies,
-        epsilon=0.05,
-        years_per_frame=0.01,
+        epsilon=0.005, 
+        years_per_frame=0.01, 
         fps=fps,
-        sim_steps_per_frame=128,
+        sim_steps_per_frame=1536, # CHANGED from 2048 to 1536 for performance
         initial_bodies_data=initial_bodies,
+        dimensions=3, 
+        loma_code_file=LOMA_CODE_3D_FILENAME,
     )
-
     return system_config
 
-def setup_jupiter_chaotic_scenario():
-    """Defines parameters for a Jupiter-centered system with 8 other solar system planets."""
-    n_bodies = 9 # Jupiter + the 8 planets
+def setup_jupiter_system_scenario() -> SolarSystemConfig:
     fps = 120
-    
-    initial_bodies = [
-        BodyState(name="Jupiter", mass=0.000955, pos=(0, 0), vel=(0, 0)),
-        BodyState(name="Mercury", mass=1.65e-7, pos=(np.random.uniform(0.015, 0.025), np.random.uniform(-0.01, 0.01)), vel=0.02),
-        BodyState(name="Venus", mass=2.45e-6, pos=(np.random.uniform(-0.04, -0.03), np.random.uniform(0.00, 0.015)), vel=0.035),
-        BodyState(name="Earth", mass=3.00e-6, pos=(np.random.uniform(-0.055, -0.045), np.random.uniform(-0.015, 0.015)), vel=0.05),
-        BodyState(name="Mars", mass=3.23e-7, pos=(np.random.uniform(0.01, 0.02), np.random.uniform(0.06, 0.07)), vel=0.065),
-        BodyState(name="Saturn", mass=2.86e-4, pos=(np.random.uniform(0.075, 0.085), np.random.uniform(-0.025, -0.015)), vel=0.08),
-        BodyState(name="Uranus", mass=4.37e-5, pos=(np.random.uniform(-0.105, -0.095), np.random.uniform(0, 0.01)), vel=0.1),
-        BodyState(name="Neptune", mass=5.15e-5, pos=(np.random.uniform(-0.01, 0.01), np.random.uniform(0.115, 0.125)), vel=0.12),
-        BodyState(name="MoonA", mass=5e-8, pos=(0.005, 0.005), vel=math.sqrt(0.005**2 + 0.005**2))
+    jupiter_mass_solar = MASS_JUPITER_SOLAR 
+    moon_definitions = [ 
+        {'name': "Io", 'mass_solar': 4.7e-5, 'pos_au': (0.0028, 0.0001, np.random.uniform(-0.0001,0.0001))}, # Slightly offset to avoid perfect alignment
+        {'name': "Europa", 'mass_solar': 2.5e-5, 'pos_au': (-0.0045, 0.0001, np.random.uniform(-0.0001,0.0001))},
+        {'name': "Ganymede", 'mass_solar': 7.8e-5, 'pos_au': (0.0001, 0.0071, np.random.uniform(-0.0001,0.0001))},
+        {'name': "Callisto", 'mass_solar': 5.7e-5, 'pos_au': (0.0001, -0.0126, np.random.uniform(-0.0001,0.0001))},
+        {'name': "MoonX1", 'mass_solar': 1e-10, 'pos_au': (np.random.uniform(0.015, 0.025), np.random.uniform(-0.01, 0.01), np.random.uniform(-0.002,0.002))},
+        {'name': "MoonX2", 'mass_solar': 1e-10, 'pos_au': (np.random.uniform(-0.03, -0.02), np.random.uniform(0.005, 0.015), np.random.uniform(-0.002,0.002))},
     ]
-
+    initial_bodies = [BodyState(name="Jupiter", mass=jupiter_mass_solar, pos=(0.0,0.0,0.0), vel=(0.0,0.0,0.0))]
+    for moon_def in moon_definitions:
+        pos_x, pos_y, pos_z = moon_def['pos_au']
+        current_r_xy = math.sqrt(pos_x**2 + pos_y**2) 
+        vx_init, vy_init, vz_init = 0.0, 0.0, 0.0 
+        if current_r_xy > 1e-9: 
+            v_mag_desired = math.sqrt(G_val * jupiter_mass_solar / current_r_xy) 
+            vx_init = -pos_y / current_r_xy * v_mag_desired
+            vy_init =  pos_x / current_r_xy * v_mag_desired
+            vz_init = (np.random.rand() - 0.5) * 0.05 * v_mag_desired # Small random z component for 3D effect
+        initial_bodies.append(BodyState(name=moon_def['name'], mass=moon_def['mass_solar'], pos=moon_def['pos_au'], vel=(vx_init, vy_init, vz_init)))
+    logging.info(f"Setting up Jupiter System. Jupiter mass: {initial_bodies[0].mass:.2e} M☉. Bodies: {len(initial_bodies)}")
     system_config = SolarSystemConfig(
-        name="Jupiter Chaotic System",
-        current_n_bodies=n_bodies,
-        epsilon=0.0001,  # Very small epsilon for softening
-        years_per_frame=0.001,
-        fps=fps,
-        sim_steps_per_frame=64,
-        initial_bodies_data=initial_bodies,
+        name="Jupiter System (Solar Masses)", current_n_bodies=len(initial_bodies),
+        epsilon=0.00005, years_per_frame=0.0005, fps=fps, sim_steps_per_frame=256, # Increased steps
+        initial_bodies_data=initial_bodies, dimensions=3, loma_code_file=LOMA_CODE_3D_FILENAME,
     )
-
     return system_config
 
-def compile_loma_code():
-    # --- Compile Loma Code ---
+def setup_true_chaotic_scenario() -> SolarSystemConfig:
+    n_bodies = 3 
+    fps = 120
+    # Slightly adjusted initial conditions for more interesting chaos
+    initial_bodies = [
+        BodyState(name="StarA", mass=1.1, pos=(0.9, 0.5, 0.05), vel=(0.12, 0.22, -0.03)),
+        BodyState(name="StarB", mass=1.0, pos=(-0.7, -0.4, -0.02), vel=(-0.08, -0.15, 0.04)),
+        BodyState(name="StarC", mass=0.9, pos=(0.2, -0.8, 0.1), vel=(0.18, 0.05, 0.08))
+    ]
+    n_bodies = len(initial_bodies)
+    logging.info(f"Setting up True Chaotic Scenario with {n_bodies} bodies.")
+    system_config = SolarSystemConfig(
+        name=f"True Chaotic System ({n_bodies}-Body)", current_n_bodies=n_bodies,
+        epsilon=0.02, years_per_frame=0.0015, fps=fps, sim_steps_per_frame=768, # More steps
+        initial_bodies_data=initial_bodies, dimensions=3, loma_code_file=LOMA_CODE_3D_FILENAME,
+    )
+    return system_config
+
+def compile_loma_code(loma_fp: str, output_lib_prefix: str):
     script_dir = os.path.dirname(os.path.realpath(__file__))
-    loma_source_full_path = os.path.join(script_dir, LOMA_CODE_SUBDIR, LOMA_CODE_FILENAME)
+    loma_source_full_path = os.path.join(script_dir, LOMA_CODE_SUBDIR, loma_fp)
     compiled_output_dir = os.path.join(script_dir, COMPILED_CODE_SUBDIR)
-    if not os.path.exists(compiled_output_dir):
-        os.makedirs(compiled_output_dir)
-    compiled_lib_path_prefix = os.path.join(compiled_output_dir, COMPILED_LIB_NAME_PREFIX) 
-
-    if not os.path.exists(loma_source_full_path):
-        print(f"ERROR: Loma source file not found at {loma_source_full_path}")
-        return # Exit this scenario run
-    with open(loma_source_full_path) as f:
-        loma_code_str = f.read()
-    structs, lib = compiler.compile(loma_code_str,
-                                    target='c', 
-                                    output_filename=compiled_lib_path_prefix)
-    print("Compilation successful for Loma code.")
-    return structs, lib
+    if not os.path.exists(compiled_output_dir): os.makedirs(compiled_output_dir); logging.info(f"Created dir: {compiled_output_dir}")
+    compiled_lib_path_prefix = os.path.join(compiled_output_dir, output_lib_prefix) 
+    if not os.path.exists(loma_source_full_path): logging.error(f"Loma src not found: {loma_source_full_path}"); return None,None
+    with open(loma_source_full_path, 'r') as f: loma_code_str = f.read()
+    try:
+        structs, lib = compiler.compile(loma_code_str,target='c',output_filename=compiled_lib_path_prefix)
+        logging.info(f"Compiled: {loma_fp} to {compiled_lib_path_prefix}"); return structs,lib
+    except Exception as e: logging.error(f"Compile error {loma_fp}: {e}",exc_info=True); return None,None
 
 def get_simulation_runner(cfg: SolarSystemConfig):    
-    structs, lib = compile_loma_code()
-    Vec2 = structs['Vec2']
-    BodyState = structs['BodyState']
-    SimConfig = structs['SimConfig']
-    BodyStateArray = BodyState * MAX_N_BODIES_CONST 
+    lib_prefix = COMPILED_LIB_NAME_PREFIX_3D if cfg.dimensions == 3 else COMPILED_LIB_NAME_PREFIX_2D
+    structs, lib = compile_loma_code(cfg.loma_code_file, lib_prefix)
+    if not structs or not lib: logging.error("Sim runner setup failed: no structs/lib."); return lambda _: [] 
 
-    current_body_states = BodyStateArray() # Zero-initialized by ctypes
-    next_body_states_buffer = BodyStateArray() # Zero-initialized
-
-    total_momentum_x: float = 0.0
-    total_momentum_y: float = 0.0
+    VecND = structs['Vec3'] if cfg.dimensions == 3 else structs['Vec2']
+    BodyStateLoma, SimConfigLoma = structs['BodyState'], structs['SimConfig']
+    BodyStateArray = BodyStateLoma * MAX_N_BODIES_CONST 
+    current_body_states, next_body_states_buffer = BodyStateArray(), BodyStateArray()
 
     for i in range(cfg.current_n_bodies):
-        p_data = cfg.initial_bodies_data[i]
-        current_body_states[i].mass = p_data.mass
-        current_body_states[i].inv_mass = 1.0 / p_data.mass if p_data.mass > 1e-20 else 0.0 # Avoid div by zero for tiny/zero mass
-        
-        pos_x, pos_y = p_data.pos
-        current_body_states[i].pos = Vec2(x=pos_x, y=pos_y)
-        
-        vx_init, vy_init = 0.0, 0.0
-        if isinstance(p_data.vel, tuple):
-             vx_init, vy_init = p_data.vel
-        elif isinstance(p_data.vel, float): # Only for orbiting bodies
-            central_body_mass = cfg.initial_bodies_data[0].mass
-            r_orbit = p_data.vel
-            # Use mass of the actual central body for this scenario
-            v_mag = math.sqrt(G_val * central_body_mass / r_orbit) if r_orbit > 1e-9 else 0.0
-            if r_orbit > 1e-9:
-                vx_init = -pos_y / r_orbit * v_mag
-                vy_init = pos_x / r_orbit * v_mag
-            
-        current_body_states[i].mom = Vec2(x=p_data.mass * vx_init, y=p_data.mass * vy_init)
-        total_momentum_x += current_body_states[i].mom.x
-        total_momentum_y += current_body_states[i].mom.y
-    
-    # if cfg.current_n_bodies > 0 and cfg.initial_bodies_data[0].get('vel', None) is not None : 
-    #     if current_body_states[0].mass > 1e-20 :
-    #         current_body_states[0].mom.x -= total_momentum_x 
-    #         current_body_states[0].mom.y -= total_momentum_y
+        p_data = cfg.initial_bodies_data[i] 
+        current_body_states[i].mass = p_data.mass 
+        current_body_states[i].inv_mass = 1.0 / p_data.mass if p_data.mass > 1e-20 else 0.0
+        pos_tuple, vel_tuple = p_data.pos, p_data.vel 
+        if cfg.dimensions == 2:
+            if len(pos_tuple)<2 or len(vel_tuple)<2: logging.error(f"Body {p_data.name} bad pos/vel for 2D."); continue
+            current_body_states[i].pos = VecND(x=pos_tuple[0], y=pos_tuple[1])
+            current_body_states[i].mom = VecND(x=vel_tuple[0]*p_data.mass, y=vel_tuple[1]*p_data.mass)
+        else: 
+            if len(pos_tuple)<3 or len(vel_tuple)<3: logging.error(f"Body {p_data.name} bad pos/vel for 3D."); continue
+            current_body_states[i].pos = VecND(x=pos_tuple[0], y=pos_tuple[1], z=pos_tuple[2])
+            current_body_states[i].mom = VecND(x=vel_tuple[0]*p_data.mass, y=vel_tuple[1]*p_data.mass, z=vel_tuple[2]*p_data.mass)
 
-    def get_get_next_states(simulation_steps):
-        sim_config_obj = SimConfig(
-            G=G_val,
-            dt=cfg.years_per_frame / cfg.sim_steps_per_frame,
-            epsilon_sq=cfg.epsilon**2,
-            num_bodies=cfg.current_n_bodies
-        )
-        body_states = []
-        for _ in range(simulation_steps):
-            body_states.append(utils.convert_ctype_state_to_body_state(current_body_states, cfg))
-            for _ in range(cfg.sim_steps_per_frame):
-                lib.time_step_system(current_body_states, sim_config_obj, next_body_states_buffer)
-                ctypes.memmove(ctypes.addressof(current_body_states),
-                                ctypes.addressof(next_body_states_buffer),
-                                ctypes.sizeof(BodyStateArray)) 
-        return body_states
-    return get_get_next_states
+    def get_next_states_closure(frames_to_generate_per_call):
+        sim_conf_loma = SimConfigLoma(G=G_val, dt=(cfg.years_per_frame/cfg.sim_steps_per_frame), 
+                                        epsilon_sq=cfg.epsilon**2, num_bodies=cfg.current_n_bodies)
+        res_list = []
+        for _ in range(frames_to_generate_per_call):
+            for k_idx in range(cfg.current_n_bodies):
+                cb_s=current_body_states[k_idx]; n="Unk"; hz_p=hasattr(cb_s.pos,'z'); hz_m=hasattr(cb_s.mom,'z')
+                if k_idx < len(cfg.initial_bodies_data): n=cfg.initial_bodies_data[k_idx].name
+                nan_p = math.isnan(cb_s.pos.x) or math.isnan(cb_s.pos.y) or (cfg.dimensions==3 and hz_p and math.isnan(cb_s.pos.z))
+                nan_m = math.isnan(cb_s.mom.x) or math.isnan(cb_s.mom.y) or (cfg.dimensions==3 and hz_m and math.isnan(cb_s.mom.z))
+                if nan_p or nan_m: logging.error(f"NaN in CTYPES {k_idx}({n}) P:({cb_s.pos.x:.2e},{cb_s.pos.y:.2e},{getattr(cb_s.pos,'z','N/A'):.2e}) M:({cb_s.mom.x:.2e},{cb_s.mom.y:.2e},{getattr(cb_s.mom,'z','N/A'):.2e})")
+            
+            res_list.append(utils.convert_ctype_state_to_body_state(current_body_states, cfg))
+            for _s in range(cfg.sim_steps_per_frame):
+                lib.time_step_system(current_body_states,sim_conf_loma,next_body_states_buffer)
+                ctypes.memmove(ctypes.addressof(current_body_states),ctypes.addressof(next_body_states_buffer),ctypes.sizeof(BodyStateArray))
+        return res_list
+    return get_next_states_closure
