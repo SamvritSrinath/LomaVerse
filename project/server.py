@@ -1,6 +1,6 @@
 from flask import Flask, render_template, jsonify, request
 import uuid
-from planetary_motion import setup_jupiter_system_scenario, setup_true_chaotic_scenario, setup_solar_system_scenario, get_simulation_runner, LOMA_CODE_3D_FILENAME
+from planetary_motion import setup_jupiter_system_scenario, setup_true_chaotic_scenario, setup_solar_system_scenario, get_simulation_runner, LOMA_CODE_3D_FILENAME, BodyState, SolarSystemConfig
 from config import BodyState, SolarSystemConfig
 import random
 import os
