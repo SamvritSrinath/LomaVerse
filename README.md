@@ -45,6 +45,10 @@ In the 3D scene, you can click and drag to rotate the camera, and scroll to zoom
 
 In the 2D scene, you can click and drag to move the camera, and scroll to zoom in and out.
 
+## Examples
+
+Examples for 2D and 3D simulations can be found in `project/examples/` directory as `.mp4` files.
+
 ## Work to be done
 
 - [x] Using a JS based Frontend
